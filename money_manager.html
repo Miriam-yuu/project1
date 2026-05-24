@@ -1,0 +1,1440 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的專屬股市管理系統</title>
+    <style>
+        :root {
+            --primary-color: #2b6cb0;
+            --success-color: #38a169;
+            --danger-color: #e53e3e;
+            --warning-color: #dd6b20;
+            --bg-color: #f7fafc;
+            --card-bg: #ffffff;
+            --sidebar-bg: #2d3748;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif, "Microsoft JhengHei";
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            color: #2d3748;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* 左側側邊選單 */
+        .sidebar {
+            width: 240px;
+            background-color: var(--sidebar-bg);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            position: fixed;
+            top: 0; bottom: 0; left: 0;
+            z-index: 100;
+        }
+
+        .sidebar-brand {
+            padding: 25px 20px;
+            font-size: 20px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            border-bottom: 1px solid #4a5568;
+            text-align: center;
+            background: #1a202c;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+        }
+
+        .sidebar-item {
+            padding: 15px 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            font-weight: 500;
+            transition: all 0.2s;
+            color: #cbd5e0;
+            border-left: 4px solid transparent;
+        }
+
+        .sidebar-item:hover {
+            background-color: #4a5568;
+            color: white;
+        }
+
+        .sidebar-item.active {
+            background-color: #1a202c;
+            color: white;
+            border-left: 4px solid var(--primary-color);
+            font-weight: bold;
+        }
+
+        /* 右側主內容區 */
+        .main-wrapper {
+            margin-left: 240px;
+            flex: 1;
+            padding: 30px;
+            box-sizing: border-box;
+        }
+
+        /* 系統大分頁 */
+        .app-section {
+            display: none;
+        }
+        .app-section.active {
+            display: block;
+        }
+
+        .container {
+            max-width: 1050px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        /* 區塊標題與按鈕容器 */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            margin-top: 25px;
+        }
+        .section-header h3 { margin: 0; font-size: 18px; color: #2d3748; }
+
+        /* 新增按鈕 */
+        .add-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+            z-index: 10;
+        }
+        .add-btn:hover { transform: scale(1.1); }
+
+        .section-inline-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .section-inline-btn:hover { opacity: 0.9; }
+
+        /* 主統整欄位 */
+        .main-summary {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .summary-card {
+            background: var(--card-bg);
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            flex: 1;
+        }
+        .summary-card h3 { margin: 0 0 5px 0; font-size: 14px; color: #718096; }
+        .summary-card p { margin: 0; font-size: 24px; font-weight: bold; }
+
+        /* 標籤頁切換 */
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            font-weight: bold;
+            color: #718096;
+        }
+        .tab.active {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        /* 存錢記錄內部的小統整欄 */
+        .saving-summary {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            background: #edf2f7;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .saving-summary div { flex: 1; }
+        .saving-summary label { display: block; font-size: 12px; color: #4a5568; margin-bottom: 5px;}
+        .saving-summary input { 
+            width: 80%; padding: 5px; border: 1px solid #cbd5e0; border-radius: 4px; font-weight: bold;
+        }
+
+        /* 表格樣式 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        th { background-color: #edf2f7; color: #4a5568; }
+        
+        .header-filter {
+            padding: 2px 5px; font-size: 13px; border-radius: 4px; border: 1px solid #cbd5e0; margin-left: 5px;
+        }
+
+        /* 動作按鈕容器與樣式 */
+        .action-btns { display: flex; gap: 8px; align-items: center; }
+        .btn-sell-action {
+            background-color: var(--warning-color); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold;
+        }
+        .btn-sell-action:hover { background-color: #dd6b20; }
+        .btn-edit { background-color: #cbd5e0; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+        .btn-edit:hover { background-color: #a0aec0; }
+        .btn-detail { background-color: #e2e8f0; border: 1px solid #cbd5e0; padding: 5px 10px; border-radius: 4px; cursor: pointer; color: #4a5568; font-weight: bold; }
+        .btn-delete { background-color: transparent; border: none; font-size: 18px; cursor: pointer; padding: 4px; border-radius: 4px; }
+        .btn-delete:hover { background-color: #fed7d7; }
+
+        /* 明細內嵌子表格樣式 */
+        .detail-row { display: none; background-color: #f7fafc; }
+        .detail-container { padding: 10px 20px; border: 1px solid #e2e8f0; background: #ffffff; border-radius: 6px; margin: 5px 0; }
+        .detail-table { width: 100%; margin: 0; box-shadow: none; border: 1px solid #e2e8f0; }
+
+        /* 彈跳視窗 Modal */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000;
+        }
+        .modal-content { background: var(--card-bg); padding: 25px; border-radius: 8px; width: 400px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-header h2 { margin: 0; font-size: 20px; }
+        .close-btn { font-size: 24px; cursor: pointer; border: none; background: none; }
+
+        /* 表單樣式 */
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px;}
+        .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box; }
+        .form-group input[readonly] { background-color: #edf2f7; }
+        .form-group-inline { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; }
+        .form-group-inline label { margin-bottom: 0; }
+        .inline-checkbox { font-weight: normal; display: inline-flex; align-items: center; color: #4a5568; }
+        .inline-checkbox input { margin-right: 6px; }
+        
+        .submit-btn { width: 100%; padding: 10px; background-color: var(--success-color); color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
+
+        .type-selector { display: flex; gap: 10px; margin-bottom: 20px; }
+        .type-btn { flex: 1; padding: 8px; border: 1px solid #cbd5e0; background: #fff; border-radius: 4px; cursor: pointer; }
+        .type-btn.active { background-color: var(--primary-color); color: white; border-color: var(--primary-color); }
+        .form-form { display: none; }
+        .form-form.active { display: block; }
+        
+        .page { display: none; }
+        .page.active { display: block; }
+    </style>
+</head>
+<body>
+
+<!-- 左側固定選單 -->
+<div class="sidebar">
+    <div class="sidebar-brand">投資管理系統</div>
+    <ul class="sidebar-menu">
+        <li class="sidebar-item" id="menu-init" onclick="switchMainSection('init')">⚙️ 初始股票設定</li>
+        <li class="sidebar-item active" id="menu-ledger" onclick="switchMainSection('ledger')">📊 股市記帳工具</li>
+    </ul>
+</div>
+
+<!-- 右側內容區 -->
+<div class="main-wrapper">
+
+    <!-- ================= 分頁一：初始股票設定 ================= -->
+    <div id="section-init" class="app-section">
+        <div class="container">
+            <h2 style="margin-top: 0; margin-bottom: 5px;">⚙️ 帳戶開帳與初始股票設定</h2>
+            <p style="color: #718096; margin-top: 0; font-size: 14px;">（提示：從長輩接手的既有資金與股票可在此輸入，金額不會記入「股市記帳工具」的存錢目標中）</p>
+            
+            <!-- 上半張表：原始金額設定 -->
+            <div class="section-header">
+                <h3>💰 1. 原始金額設定 (開帳現金)</h3>
+                <button class="section-inline-btn" onclick="openInitModal('amount')">+ 新增原始金額</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>日期</th>
+                        <th>銀行 / 證券商</th>
+                        <th>金額</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="init-amount-table-body"></tbody>
+            </table>
+
+            <!-- 下半張表：初始未實現損益 -->
+            <div class="section-header">
+                <h3>📈 2. 未實現損益設定 (接手時既有持股)</h3>
+                <button class="section-inline-btn" onclick="openInitModal('stock')">+ 新增既有持股</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>日期</th>
+                        <th>性質</th>
+                        <th>公司</th>
+                        <th>持股股數</th>
+                        <th>成本單價</th>
+                        <th>今日現價</th>
+                        <th>付出成本</th>
+                        <th>目前現值</th>
+                        <th>未實現損益</th>
+                        <th>報酬率</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="init-stock-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ================= 分頁二：股市記帳工具 (預設顯示) ================= -->
+    <div id="section-ledger" class="app-section active">
+        <div class="container">
+            <button class="add-btn" onclick="openModal()">+</button>
+
+            <div class="main-summary">
+                <div class="summary-card">
+                    <h3>總可用金額 (含初始現金)</h3>
+                    <p id="main-available">$0</p>
+                </div>
+                <div class="summary-card">
+                    <h3>賣出獲利</h3>
+                    <p id="main-profit" style="color: var(--success-color);">$0</p>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('saving')">存錢記錄</div>
+                <div class="tab" onclick="switchTab('unrealized')">未實現損益</div>
+                <div class="tab" onclick="switchTab('realized')">已實現損益</div>
+                <div class="tab" onclick="switchTab('transactions')">交易總明細</div>
+            </div>
+
+            <!-- 存錢記錄子頁面 -->
+            <div id="saving-page" class="page active">
+                <div class="saving-summary">
+                    <div>
+                        <label>目標價設定 (不包含初始金額)</label>
+                        <input type="number" id="target-input" value="1000000" oninput="handleTargetInput()">
+                    </div>
+                    <div>
+                        <label>自己已存入</label>
+                        <p id="summary-saved" style="margin:5px 0; font-size:18px; font-weight:bold;">$0</p>
+                    </div>
+                    <div>
+                        <label>距目標</label>
+                        <p id="summary-distance" style="margin:5px 0; font-size:18px; font-weight:bold; color:var(--danger-color);">$0</p>
+                    </div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>
+                                項目
+                                <select id="saving-filter" class="header-filter" onchange="renderSavingTable()">
+                                    <option value="全部">全部</option>
+                                    <option value="現金">現金</option>
+                                    <option value="股利">股利</option>
+                                    <option value="初始金額">⚙️ 初始金額</option>
+                                </select>
+                            </th>
+                            <th>金額</th>
+                            <th>存入</th>
+                            <th>累積</th>
+                            <th>距離目標</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="saving-table-body"></tbody>
+                </table>
+            </div>
+
+            <!-- 未實現損益子頁面 -->
+            <div id="unrealized-page" class="page">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>性質</th>
+                            <th>公司</th>
+                            <th>剩餘股數</th>
+                            <th style="color: var(--primary-color);">調整單價</th>
+                            <th>明細</th>
+                            <th>剩餘成本</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="unrealized-table-body"></tbody>
+                </table>
+            </div>
+
+            <!-- 已實現損益子頁面 -->
+            <div id="realized-page" class="page">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>公司</th>
+                            <th>股數</th>
+                            <th>單價</th>
+                            <th>手續費</th>
+                            <th>證交稅</th>
+                            <th>實拿金額</th>
+                            <th>買入單價</th>
+                            <th>損益</th>
+                            <th>績效</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="realized-table-body"></tbody>
+                </table>
+            </div>
+
+            <!-- 交易總明細子頁面 -->
+            <div id="transactions-page" class="page">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>項目</th>
+                            <th>公司</th>
+                            <th>股數</th>
+                            <th>單價</th>
+                            <th>手續費</th>
+                            <th>證交稅</th>
+                            <th>金額</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transaction-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= 彈跳視窗 Modal (主記帳工具) ================= -->
+<div class="modal" id="addModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>新增記帳資料</h2>
+            <button class="close-btn" onclick="closeModal()">&times;</button>
+        </div>
+
+        <div class="type-selector">
+            <button class="type-btn active" id="btn-type-saving" onclick="selectFormType('saving')">存錢</button>
+            <button class="type-btn" id="btn-type-buy" onclick="selectFormType('buy')">買入</button>
+            <button class="type-btn" id="btn-type-sell" onclick="selectFormType('sell')">賣出</button>
+        </div>
+
+        <form id="form-saving" class="form-form active" onsubmit="handleFormSubmit(event, 'saving')">
+            <div class="form-group">
+                <label>日期</label>
+                <input type="date" id="save-date" required>
+            </div>
+            <div class="form-group">
+                <label>項目</label>
+                <select id="save-item" required>
+                    <option value="現金">現金</option>
+                    <option value="股利">股利</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>金額</label>
+                <input type="number" id="save-amount" placeholder="請輸入金額" required>
+            </div>
+            <div class="form-group">
+                <label>存入（選填）</label>
+                <select id="save-bank">
+                    <option value="">-- 請選擇 --</option>
+                    <option value="新光">新光</option>
+                    <option value="巨亨">巨亨</option>
+                </select>
+            </div>
+            <button type="submit" class="submit-btn">儲存資料</button>
+        </form>
+
+        <!-- 買入與賣出表單保留原樣 -->
+        <form id="form-buy" class="form-form" onsubmit="handleFormSubmit(event, 'buy')">
+            <div class="form-group"><label>日期</label><input type="date" id="buy-date" required></div>
+            <div class="form-group"><label>性質</label><select id="buy-type" required><option value="個股">個股</option><option value="ETF">ETF</option></select></div>
+            <div class="form-group"><label>公司</label><input type="text" id="buy-company" placeholder="例如: 2330 台積電" required></div>
+            <div class="form-group"><label>股數</label><input type="number" id="buy-shares" oninput="calcBuyTotal()" placeholder="0" required></div>
+            <div class="form-group"><label>單價</label><input type="number" step="0.01" id="buy-price" oninput="calcBuyTotal()" placeholder="0.00" required></div>
+            <div class="form-group form-group-inline">
+                <label>手續費</label>
+                <label class="inline-checkbox"><input type="checkbox" id="buy-regular" onchange="handleBuyRegularToggle()"> 定期定額</label>
+                <input type="number" id="buy-fee" oninput="handleBuyFeeInput()" required>
+            </div>
+            <div class="form-group"><label>總成本</label><input type="number" id="buy-total" readonly></div>
+            <button type="submit" class="submit-btn">儲存資料</button>
+        </form>
+
+        <form id="form-sell" class="form-form" onsubmit="handleFormSubmit(event, 'sell')">
+            <div class="form-group"><label>日期</label><input type="date" id="sell-date" required></div>
+            <div class="form-group"><label>性質</label><select id="sell-type" onchange="handleSellTypeChange()" required><option value="個股">個股</option><option value="ETF">ETF</option></select></div>
+            <div class="form-group"><label>公司</label><input type="text" id="sell-company" placeholder="例如: 0050 元大台灣50" required></div>
+            <div class="form-group"><label>股數</label><input type="number" id="sell-shares" oninput="calcSellTotal()" placeholder="0" required></div>
+            <div class="form-group"><label>單價</label><input type="number" step="0.01" id="sell-price" oninput="calcSellTotal()" placeholder="0.00" required></div>
+            <div class="form-group"><label>手續費</label><input type="number" id="sell-fee" oninput="handleSellFeeInput()" required></div>
+            <div class="form-group"><label>證交稅</label><input type="number" id="sell-tax" oninput="handleSellTaxInput()" required></div>
+            <div class="form-group"><label>實拿金額</label><input type="number" id="sell-total" readonly></div>
+            <button type="submit" class="submit-btn">儲存資料</button>
+        </form>
+    </div>
+</div>
+
+
+<!-- ================= 彈跳視窗 Modal (初始設定專用) ================= -->
+<div class="modal" id="initModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="init-modal-title">新增初始設定</h2>
+            <button class="close-btn" onclick="closeInitModal()">&times;</button>
+        </div>
+
+        <!-- 初始金額表單 -->
+        <form id="form-init-amount" style="display: none;" onsubmit="handleInitAmountSubmit(event)">
+            <div class="form-group">
+                <label>日期</label>
+                <input type="date" id="init-amt-date" required>
+            </div>
+            <div class="form-group">
+                <label>銀行 / 證券商</label>
+                <input type="text" id="init-amt-bank" placeholder="例如: 國泰證券、新光銀行" required>
+            </div>
+            <div class="form-group">
+                <label>金額</label>
+                <input type="number" id="init-amt-value" placeholder="請輸入開帳原始金額" required>
+            </div>
+            <button type="submit" class="submit-btn">儲存初始金額</button>
+        </form>
+
+        <!-- 初始股票持股表單 -->
+        <form id="form-init-stock" style="display: none;" onsubmit="handleInitStockSubmit(event)">
+            <div class="form-group">
+                <label>日期 (接手日或長輩原始買入日)</label>
+                <input type="date" id="init-stk-date" required>
+            </div>
+            <div class="form-group">
+                <label>性質</label>
+                <select id="init-stk-type" required>
+                    <option value="個股">個股</option>
+                    <option value="ETF">ETF</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>公司</label>
+                <input type="text" id="init-stk-company" placeholder="例如: 2330 台積電" required>
+            </div>
+            <div class="form-group">
+                <label>持股股數</label>
+                <input type="number" id="init-stk-shares" placeholder="零股或整張，例如: 1000" required>
+            </div>
+            <div class="form-group">
+                <label>成本單價</label>
+                <input type="number" step="0.01" id="init-stk-cost-price" placeholder="接手時的每股成本單價" required>
+            </div>
+            <div class="form-group">
+                <label>今日現價 (估算損益用)</label>
+                <input type="number" step="0.01" id="init-stk-current-price" placeholder="目前的市場價格" required>
+            </div>
+            <button type="submit" class="submit-btn">儲存初始持股</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    // ======= 核心資料庫 (加入了初始設定欄位) =======
+    let db = {
+        savings: [],
+        buys: [],   
+        sells: [],
+        initAmounts: [], // ⚙️ 初始金額庫
+        initStocks: []   // ⚙️ 初始股票庫
+    };
+
+    let unrealizedInventory = []; 
+    let currentFormType = 'saving';
+    
+    // 編輯控制
+    let editingId = null;
+    let editingType = null; // 'saving', 'buy', 'sell', 'initAmount', 'initStock'
+
+    let buyFeeManual = false;
+    let sellFeeManual = false;
+    let sellTaxManual = false;
+
+    window.onload = function() {
+        const savedTarget = localStorage.getItem('my_stock_saving_target');
+        if (savedTarget !== null) {
+            document.getElementById('target-input').value = savedTarget;
+        }
+        
+        loadDataFromStorage(); 
+        resetDates();
+        sortAllDataByDate();
+        refreshAllViews();
+        switchMainSection('ledger'); // 依照要求，預設顯示第二個分頁：股市記帳工具
+    };
+
+    function loadDataFromStorage() {
+        const storedDb = localStorage.getItem('my_stock_ledger_db');
+        if (storedDb) {
+            try {
+                db = JSON.parse(storedDb);
+                if (!db.savings) db.savings = [];
+                if (!db.buys) db.buys = [];
+                if (!db.sells) db.sells = [];
+                if (!db.initAmounts) db.initAmounts = [];
+                if (!db.initStocks) db.initStocks = [];
+            } catch (e) {
+                console.error("儲存的資料格式有誤，已重置", e);
+            }
+        }
+    }
+
+    function saveDataToStorage() {
+        localStorage.setItem('my_stock_ledger_db', JSON.stringify(db));
+    }
+
+    // 切換左側大分頁系統
+    function switchMainSection(sectionId) {
+        document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
+        document.querySelectorAll('.app-section').forEach(sec => sec.classList.remove('active'));
+        
+        document.getElementById(`menu-${sectionId}`).classList.add('active');
+        document.getElementById(`section-${sectionId}`).classList.add('active');
+        refreshAllViews();
+    }
+
+    function handleTargetInput() {
+        const targetValue = document.getElementById('target-input').value;
+        localStorage.setItem('my_stock_saving_target', targetValue);
+        renderSavingTable();
+    }
+
+    function sortAllDataByDate() {
+        db.savings.sort((a, b) => new Date(a.date) - new Date(b.date));
+        db.buys.sort((a, b) => new Date(a.date) - new Date(b.date));
+        db.sells.sort((a, b) => new Date(a.date) - new Date(b.date));
+        db.initAmounts.sort((a, b) => new Date(a.date) - new Date(b.date));
+        db.initStocks.sort((a, b) => new Date(a.date) - new Date(b.date));
+    }
+
+    // 資料連動核心運算
+    function calculateDataLinkage() {
+        // 先處理常規買入的固定單價調整
+        db.buys.forEach(buy => {
+            if (!buy.initialShares) buy.initialShares = buy.shares;
+            if (!buy.fixedAdjustedPrice) {
+                buy.fixedAdjustedPrice = (buy.total / buy.initialShares).toFixed(2);
+            }
+        });
+
+        // 建立整合用的臨時買入陣列 (把日常買入 + 初始設定的股票合併，以支援後續賣出計算)
+        let mergedBuys = [];
+        
+        // 1. 塞入常規買入
+        db.buys.forEach(b => {
+            mergedBuys.push({
+                id: b.id,
+                date: b.date,
+                type: b.type || '個股',
+                company: b.company,
+                shares: b.shares,
+                initialShares: b.initialShares,
+                fixedAdjustedPrice: b.fixedAdjustedPrice,
+                total: b.total,
+                isInit: false
+            });
+        });
+
+        // 2. 塞入初始股票 (轉換為跟買入一樣的結構，其總成本就是 股數 * 成本單價)
+        db.initStocks.forEach(s => {
+            mergedBuys.push({
+                id: s.id,
+                date: s.date,
+                type: s.type || '個股',
+                company: s.company,
+                shares: s.shares, // 當前賸餘會隨賣出被扣除
+                initialShares: s.initialShares || s.shares,
+                fixedAdjustedPrice: s.costPrice.toFixed(2),
+                total: Math.round(s.shares * s.costPrice),
+                isInit: true
+            });
+        });
+
+        // 排序合併後的買入池，確保時間先後正確
+        mergedBuys.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        // 重新計算日常賣出與買入的扣除關係
+        db.sells.forEach(sell => {
+            sell.profit = 0;
+            sell.performance = '0%';
+            sell.avgAdjustedBuyPrice = 0; 
+        });
+
+        db.sells.forEach(sell => {
+            let neededShares = sell.shares;
+            let totalMatchedCost = 0; 
+
+            for (let i = 0; i < mergedBuys.length; i++) {
+                let buy = mergedBuys[i];
+                if (buy.company === sell.company && buy.shares > 0) {
+                    let singleCostPerShare = parseFloat(buy.fixedAdjustedPrice);
+
+                    if (buy.shares >= neededShares) {
+                        totalMatchedCost += singleCostPerShare * neededShares;
+                        buy.shares -= neededShares;
+                        neededShares = 0;
+                        break;
+                    } else {
+                        totalMatchedCost += singleCostPerShare * buy.shares;
+                        neededShares -= buy.shares;
+                        buy.shares = 0;
+                    }
+                }
+            }
+
+            if (totalMatchedCost > 0) {
+                sell.profit = Math.round(sell.total - totalMatchedCost);
+                let perfValue = ((sell.total - totalMatchedCost) / totalMatchedCost) * 100;
+                sell.performance = `${perfValue.toFixed(2)}%`;
+                sell.avgAdjustedBuyPrice = (totalMatchedCost / sell.shares).toFixed(2); 
+            } else {
+                sell.profit = sell.total;
+                sell.performance = '100.00%';
+                sell.avgAdjustedBuyPrice = (0).toFixed(2);
+            }
+        });
+
+        // 產生主系統「未實現損益」清單 (同時包含常規剩餘與初始持股剩餘)
+        unrealizedInventory = [];
+        mergedBuys.forEach(buy => {
+            if (buy.shares > 0) {
+                unrealizedInventory.push({
+                    id: buy.id,
+                    date: buy.date,
+                    type: buy.type,
+                    company: buy.company,
+                    remainingShares: buy.shares,
+                    adjustedPrice: buy.fixedAdjustedPrice,
+                    remainingCost: Math.round(buy.shares * parseFloat(buy.fixedAdjustedPrice)),
+                    isInit: buy.isInit,
+                    rawRecord: buy 
+                });
+            }
+        });
+    }
+
+    function refreshAllViews() {
+        calculateDataLinkage(); 
+        
+        // 渲染初始設定頁面
+        renderInitAmountTable();
+        renderInitStockTable();
+
+        // 渲染日常記帳工具頁面
+        renderSavingTable();
+        renderUnrealizedTable();
+        renderRealizedTable();
+        renderTransactionTable();
+        calculateMainSummary();
+    }
+
+    function switchTab(page) {
+        document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.page').forEach(section => section.classList.remove('active'));
+        document.querySelector(`[onclick="switchTab('${page}')"]`).classList.add('active');
+        document.getElementById(`${page}-page`).classList.add('active');
+    }
+
+    function toggleDetailRow(rowId) {
+        const row = document.getElementById(`detail-${rowId}`);
+        row.style.display = (row.style.display === 'table-row') ? 'none' : 'table-row';
+    }
+
+    // ======================== 初始設定頁面邏輯處理 ========================
+    function openInitModal(mode) {
+        document.getElementById('initModal').style.display = 'flex';
+        document.getElementById('form-init-amount').style.display = 'none';
+        document.getElementById('form-init-stock').style.display = 'none';
+        
+        const today = new Date().toISOString().split('T')[0];
+        editingId = null;
+
+        if (mode === 'amount') {
+            document.getElementById('init-modal-title').innerText = '💰 新增初始開帳金額';
+            document.getElementById('form-init-amount').style.display = 'block';
+            document.getElementById('init-amt-date').value = today;
+            document.getElementById('init-amt-bank').value = '';
+            document.getElementById('init-amt-value').value = '';
+            editingType = 'initAmount';
+        } else {
+            document.getElementById('init-modal-title').innerText = '📈 新增接手初始持股';
+            document.getElementById('form-init-stock').style.display = 'block';
+            document.getElementById('init-stk-date').value = today;
+            document.getElementById('init-stk-type').value = '個股';
+            document.getElementById('init-stk-company').value = '';
+            document.getElementById('init-stk-shares').value = '';
+            document.getElementById('init-stk-cost-price').value = '';
+            document.getElementById('init-stk-current-price').value = '';
+            editingType = 'initStock';
+        }
+    }
+
+    function closeInitModal() {
+        document.getElementById('initModal').style.display = 'none';
+    }
+
+    function handleInitAmountSubmit(e) {
+        e.preventDefault();
+        const data = {
+            id: editingId ? editingId : Date.now(),
+            date: document.getElementById('init-amt-date').value,
+            bank: document.getElementById('init-amt-bank').value,
+            amount: parseInt(document.getElementById('init-amt-value').value) || 0
+        };
+
+        if (editingId && editingType === 'initAmount') {
+            const index = db.initAmounts.findIndex(item => item.id === editingId);
+            if(index !== -1) db.initAmounts[index] = data;
+        } else {
+            db.initAmounts.push(data);
+        }
+
+        saveDataToStorage();
+        closeInitModal();
+        sortAllDataByDate();
+        refreshAllViews();
+    }
+
+    function handleInitStockSubmit(e) {
+        e.preventDefault();
+        const shares = parseFloat(document.getElementById('init-stk-shares').value) || 0;
+        const costPrice = parseFloat(document.getElementById('init-stk-cost-price').value) || 0;
+        
+        const data = {
+            id: editingId ? editingId : Date.now(),
+            date: document.getElementById('init-stk-date').value,
+            type: document.getElementById('init-stk-type').value,
+            company: document.getElementById('init-stk-company').value,
+            shares: shares,
+            initialShares: shares, // 鎖定初始總股數
+            costPrice: costPrice,
+            currentPrice: parseFloat(document.getElementById('init-stk-current-price').value) || 0
+        };
+
+        if (editingId && editingType === 'initStock') {
+            const index = db.initStocks.findIndex(item => item.id === editingId);
+            if(index !== -1) db.initStocks[index] = data;
+        } else {
+            db.initStocks.push(data);
+        }
+
+        saveDataToStorage();
+        closeInitModal();
+        sortAllDataByDate();
+        refreshAllViews();
+    }
+
+    function editInitAmount(id) {
+        const data = db.initAmounts.find(item => item.id === id);
+        if (!data) return;
+        openInitModal('amount');
+        document.getElementById('init-amt-date').value = data.date;
+        document.getElementById('init-amt-bank').value = data.bank;
+        document.getElementById('init-amt-value').value = data.amount;
+        editingId = id;
+        editingType = 'initAmount';
+    }
+
+    function editInitStock(id) {
+        const data = db.initStocks.find(item => item.id === id);
+        if (!data) return;
+        openInitModal('stock');
+        document.getElementById('init-stk-date').value = data.date;
+        document.getElementById('init-stk-type').value = data.type || '個股';
+        document.getElementById('init-stk-company').value = data.company;
+        document.getElementById('init-stk-shares').value = data.initialShares || data.shares;
+        document.getElementById('init-stk-cost-price').value = data.costPrice;
+        document.getElementById('init-stk-current-price').value = data.currentPrice || data.costPrice;
+        editingId = id;
+        editingType = 'initStock';
+    }
+
+    function deleteInitRecord(type, id) {
+        if (confirm('確定要刪除這筆初始開帳資料嗎？')) {
+            if (type === 'amount') db.initAmounts = db.initAmounts.filter(item => item.id !== id);
+            if (type === 'stock') db.initStocks = db.initStocks.filter(item => item.id !== id);
+            saveDataToStorage();
+            refreshAllViews();
+        }
+    }
+
+    // 渲染初始金額表
+    function renderInitAmountTable() {
+        const tbody = document.getElementById('init-amount-table-body');
+        tbody.innerHTML = '';
+        db.initAmounts.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${row.date}</td>
+                <td>${row.bank}</td>
+                <td>$${row.amount.toLocaleString()}</td>
+                <td>
+                    <div class="action-btns">
+                        <button class="btn-edit" onclick="editInitAmount(${row.id})">編輯</button>
+                        <button class="btn-delete" onclick="deleteInitRecord('amount', ${row.id})">🗑️</button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // 渲染初始股票庫存表
+    function renderInitStockTable() {
+        const tbody = document.getElementById('init-stock-table-body');
+        tbody.innerHTML = '';
+        db.initStocks.forEach(row => {
+            const cost = Math.round(row.shares * row.costPrice);
+            const value = Math.round(row.shares * row.currentPrice);
+            const diff = value - cost;
+            const ratio = cost > 0 ? ((diff / cost) * 100).toFixed(2) : '0.00';
+            const profitColor = diff >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
+            const prefix = diff > 0 ? '+' : '';
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${row.date}</td>
+                <td>${row.type}</td>
+                <td>${row.company}</td>
+                <td>${row.shares.toLocaleString()}</td>
+                <td>$${row.costPrice.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
+                <td>$${row.currentPrice.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
+                <td>$${cost.toLocaleString()}</td>
+                <td>$${value.toLocaleString()}</td>
+                <td style="color: ${profitColor}; font-weight: bold;">${prefix}$${diff.toLocaleString()}</td>
+                <td style="color: ${profitColor}; font-weight: bold;">${prefix}${ratio}%</td>
+                <td>
+                    <div class="action-btns">
+                        <button class="btn-edit" onclick="editInitStock(${row.id})">編輯</button>
+                        <button class="btn-delete" onclick="deleteInitRecord('stock', ${row.id})">🗑️</button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+
+    // ======================== 主日常記帳工具邏輯處理 ========================
+    function resetDates() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('save-date').value = today;
+        document.getElementById('buy-date').value = today;
+        document.getElementById('sell-date').value = today;
+        document.getElementById('save-amount').value = '';
+        document.getElementById('buy-type').value = '個股';
+        document.getElementById('buy-company').value = '';
+        document.getElementById('buy-shares').value = '';
+        document.getElementById('buy-price').value = '';
+        document.getElementById('sell-company').value = '';
+        document.getElementById('sell-shares').value = '';
+        document.getElementById('sell-price').value = '';
+        document.getElementById('save-bank').value = '';
+        document.getElementById('buy-fee').value = '';
+        document.getElementById('buy-total').value = '';
+        document.getElementById('sell-type').value = '個股';
+        document.getElementById('sell-fee').value = '';
+        document.getElementById('sell-tax').value = '';
+        document.getElementById('sell-total').value = '';
+        document.getElementById('buy-regular').checked = false;
+        document.getElementById('buy-fee').readOnly = false;
+        buyFeeManual = false; sellFeeManual = false; sellTaxManual = false;
+    }
+
+    function openModal() {
+        document.getElementById('addModal').style.display = 'flex';
+        resetDates();
+        editingId = null; editingType = null;
+        selectFormType('saving');
+    }
+    
+    function closeModal() {
+        document.getElementById('addModal').style.display = 'none';
+    }
+
+    function selectFormType(type) {
+        currentFormType = type;
+        document.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.form-form').forEach(form => form.classList.remove('active'));
+        document.getElementById(`btn-type-${type}`).classList.add('active');
+        document.getElementById(`form-${type}`).classList.add('active');
+        if (type === 'buy') calcBuyTotal();
+        else if (type === 'sell') calcSellTotal();
+    }
+
+    function handleBuyRegularToggle() {
+        const isRegular = document.getElementById('buy-regular').checked;
+        const feeInput = document.getElementById('buy-fee');
+        buyFeeManual = false;
+        if (isRegular) { feeInput.readOnly = true; feeInput.value = 1; }
+        else { feeInput.readOnly = false; }
+        calcBuyTotal();
+    }
+
+    function handleBuyFeeInput() { buyFeeManual = true; calcBuyTotal(); }
+    function handleSellFeeInput() { sellFeeManual = true; calcSellTotal(); }
+    function handleSellTaxInput() { sellTaxManual = true; calcSellTotal(); }
+    function handleSellTypeChange() { sellTaxManual = false; calcSellTotal(); }
+
+    function calcBuyTotal() {
+        const shares = parseFloat(document.getElementById('buy-shares').value) || 0;
+        const price = parseFloat(document.getElementById('buy-price').value) || 0;
+        const rawSum = shares * price;
+        const feeInput = document.getElementById('buy-fee');
+        let fee;
+
+        if (document.getElementById('buy-regular').checked) {
+            fee = 1; feeInput.value = fee;
+        } else {
+            let defaultFee = Math.round(rawSum * 0.001425);
+            if (rawSum > 0 && defaultFee < 20) defaultFee = 20;
+            const manualFee = parseFloat(feeInput.value);
+            fee = buyFeeManual && !isNaN(manualFee) ? Math.round(manualFee) : defaultFee;
+            if (rawSum > 0 || buyFeeManual) feeInput.value = fee;
+        }
+        document.getElementById('buy-total').value = Math.round(rawSum + (fee || 0));
+    }
+
+    function calcSellTotal() {
+        const shares = parseFloat(document.getElementById('sell-shares').value) || 0;
+        const price = parseFloat(document.getElementById('sell-price').value) || 0;
+        const rawSum = shares * price;
+        const feeInput = document.getElementById('sell-fee');
+        const taxInput = document.getElementById('sell-tax');
+        const sellType = document.getElementById('sell-type').value;
+
+        let defaultFee = Math.round(rawSum * 0.001425);
+        if (rawSum > 0 && defaultFee < 20) defaultFee = 20;
+        const taxRate = (sellType === 'ETF') ? 0.001 : 0.003;
+        const defaultTax = Math.round(rawSum * taxRate);
+
+        const manualFee = parseFloat(feeInput.value);
+        const manualTax = parseFloat(taxInput.value);
+
+        const fee = sellFeeManual && !isNaN(manualFee) ? Math.round(manualFee) : defaultFee;
+        const tax = sellTaxManual && !isNaN(manualTax) ? Math.round(manualTax) : defaultTax;
+
+        if (rawSum > 0 || sellFeeManual) feeInput.value = fee;
+        if (rawSum > 0 || sellTaxManual) taxInput.value = tax;
+        document.getElementById('sell-total').value = Math.round(rawSum - (fee || 0) - (tax || 0));
+    }
+
+    function deleteRecord(type, id) {
+        if (confirm('確定要刪除這筆資料嗎？')) {
+            if (type === 'saving') db.savings = db.savings.filter(item => item.id !== id);
+            else if (type === 'buy') db.buys = db.buys.filter(item => item.id !== id);
+            else if (type === 'sell') db.sells = db.sells.filter(item => item.id !== id);
+            
+            saveDataToStorage(); 
+            refreshAllViews();
+        }
+    }
+
+    function quickSell(company, shares, type, adjustedPrice) {
+        switchMainSection('ledger');
+        switchTab('unrealized');
+        document.getElementById('addModal').style.display = 'flex';
+        resetDates();
+        editingId = null; editingType = null;
+        selectFormType('sell');
+        document.getElementById('sell-type').value = type || '個股';
+        document.getElementById('sell-company').value = company;
+        document.getElementById('sell-shares').value = shares;
+        document.getElementById('sell-price').value = adjustedPrice; 
+        calcSellTotal();
+    }
+
+    // 渲染存錢記錄 (整合並扣除初始開帳金額)
+    function renderSavingTable() {
+        const tbody = document.getElementById('saving-table-body');
+        tbody.innerHTML = '';
+        const targetPrice = parseFloat(document.getElementById('target-input').value) || 0;
+        const filterValue = document.getElementById('saving-filter').value;
+        
+        // 建立一個融合日常存錢 + 初始設定金額的陣列
+        let combinedSavings = [];
+        
+        // 放入常規存錢
+        db.savings.forEach(s => {
+            combinedSavings.push({ ...s, isInit: false });
+        });
+        
+        // 放入初始設定金額 (標記特殊項目與旗標)
+        db.initAmounts.forEach(i => {
+            combinedSavings.push({
+                id: i.id,
+                date: i.date,
+                item: '初始金額',
+                amount: i.amount,
+                bank: i.bank,
+                isInit: true
+            });
+        });
+
+        // 依日期排序
+        combinedSavings.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        let cumulativeAll = 0;   // 用於計算顯示在表格上的帳戶累積總額
+        let cumulativeSelf = 0;  // 用於計算「自己存」的金額 (扣除初始開帳金額)
+
+        combinedSavings.forEach((row) => {
+            if (filterValue !== '全部' && row.item !== filterValue) return;
+            
+            cumulativeAll += row.amount;
+            if (!row.isInit) {
+                cumulativeSelf += row.amount; // 只有非初始開帳金額才會累加到個人存錢進度
+            }
+            
+            // 距離目標是用「自己存的總和」去算
+            let distance = Math.max(0, targetPrice - cumulativeSelf);
+
+            const tr = document.createElement('tr');
+            // 初始設定金額不可在日常工具中隨便修改，需去第一分頁改
+            const actionHtml = row.isInit 
+                ? `<span style="font-size:12px; color:#a0aec0;">請至「初始設定」修改</span>`
+                : `<div class="action-btns">
+                    <button class="btn-edit" onclick="editSaving(${row.id})">編輯</button>
+                    <button class="btn-delete" onclick="deleteRecord('saving', ${row.id})">🗑️</button>
+                   </div>`;
+
+            tr.innerHTML = `
+                <td style="${row.isInit ? 'color: var(--primary-color); font-weight:bold;' : ''}">${row.date}</td>
+                <td>${row.isInit ? '⚙️ 初始金額' : row.item}</td>
+                <td>$${row.amount.toLocaleString()}</td>
+                <td>${row.bank || ''}</td>
+                <td>$${cumulativeAll.toLocaleString()}</td>
+                <td>${row.isInit ? '-' : '$' + distance.toLocaleString()}</td>
+                <td>${actionHtml}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        // 更新上方的統計看板（自動排除初始金額，不記入目標）
+        const totalSelfSaved = db.savings.reduce((sum, row) => sum + row.amount, 0);
+        let currentDistance = Math.max(0, targetPrice - totalSelfSaved);
+        
+        document.getElementById('summary-saved').innerText = `$${totalSelfSaved.toLocaleString()}`;
+        document.getElementById('summary-distance').innerText = `$${currentDistance.toLocaleString()}`;
+    }
+
+    // 渲染未實現損益表 (已整合初始持股)
+    function renderUnrealizedTable() {
+        const tbody = document.getElementById('unrealized-table-body');
+        tbody.innerHTML = '';
+        
+        unrealizedInventory.forEach((row) => {
+            const tr = document.createElement('tr');
+            const d = row.rawRecord;
+
+            tr.innerHTML = `
+                <td>${row.date}</td>
+                <td>${row.type} ${row.isInit ? '<span style="font-size:11px; color:var(--primary-color);">[初始]</span>' : ''}</td>
+                <td style="${row.isInit ? 'font-weight: bold; color: var(--primary-color);' : ''}">${row.company}</td>
+                <td>${row.remainingShares.toLocaleString()}</td>
+                <td style="font-weight: bold; color: var(--primary-color);">$${parseFloat(row.adjustedPrice).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td><button class="btn-detail" onclick="toggleDetailRow('${row.id}')">明細 🔍</button></td>
+                <td>$${row.remainingCost.toLocaleString()}</td>
+                <td>
+                    <div class="action-btns">
+                        <button class="btn-sell-action" onclick="quickSell('${row.company}', ${row.remainingShares}, '${row.type}', '${row.adjustedPrice}')">賣出</button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+
+            // 下方展開細項
+            const detailTr = document.createElement('tr');
+            detailTr.id = `detail-${row.id}`;
+            detailTr.className = 'detail-row';
+            
+            const actionHtml = row.isInit 
+                ? `<span style="font-size:12px; color:#a0aec0;">請至「初始設定」修改</span>`
+                : `<div class="action-btns">
+                    <button class="btn-edit" onclick="editBuy(${d.id})">編輯</button>
+                    <button class="btn-delete" onclick="deleteRecord('buy', ${d.id})">🗑️</button>
+                   </div>`;
+
+            detailTr.innerHTML = `
+                <td colspan="8">
+                    <div class="detail-container">
+                        <h4 style="margin: 0 0 10px 0; color: var(--primary-color);">【${row.company}】單筆原始買入細項：</h4>
+                        <table class="detail-table">
+                            <thead>
+                                <tr>
+                                    <th>日期</th>
+                                    <th>性質</th>
+                                    <th>公司</th>
+                                    <th>原始股數</th>
+                                    <th>成交/成本單價</th>
+                                    <th>手續費</th>
+                                    <th>總成本</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>${d.date}</td>
+                                    <td>${d.type || '個股'}</td>
+                                    <td>${d.company}</td>
+                                    <td>${d.initialShares.toLocaleString()}</td>
+                                    <td>$${parseFloat(d.fixedAdjustedPrice).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                    <td>$${(d.fee || 0).toLocaleString()}</td>
+                                    <td>$${d.total.toLocaleString()}</td>
+                                    <td>${actionHtml}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(detailTr);
+        });
+    }
+
+    function renderRealizedTable() {
+        const tbody = document.getElementById('realized-table-body');
+        tbody.innerHTML = '';
+        db.sells.forEach((row) => {
+            const tr = document.createElement('tr');
+            let profitColor = row.profit >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
+            let prefix = row.profit > 0 ? '+' : '';
+
+            tr.innerHTML = `
+                <td>${row.date}</td>
+                <td>${row.company}</td>
+                <td>${row.shares.toLocaleString()}</td>
+                <td>$${row.price.toLocaleString()}</td>
+                <td>$${row.fee.toLocaleString()}</td>
+                <td>$${row.tax.toLocaleString()}</td>
+                <td>$${row.total.toLocaleString()}</td>
+                <td style="font-weight: bold; color: #4a5568;">$${parseFloat(row.avgAdjustedBuyPrice).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td style="color: ${profitColor}; font-weight: bold;">${prefix}$${row.profit.toLocaleString()}</td>
+                <td style="color: ${profitColor}; font-weight: bold;">${prefix}${row.performance}</td>
+                <td>
+                    <div class="action-btns">
+                        <button class="btn-edit" onclick="editSell(${row.id})">編輯</button>
+                        <button class="btn-delete" onclick="deleteRecord('sell', ${row.id})">🗑️</button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderTransactionTable() {
+        const tbody = document.getElementById('transaction-table-body');
+        tbody.innerHTML = '';
+        const rows = [
+            ...db.buys.map(row => ({ ...row, item: '買入', type: 'buy', tax: 0, amount: -(row.total || 0) })),
+            ...db.sells.map(row => ({ ...row, item: '賣出', type: 'sell', amount: row.total || 0 }))
+        ];
+        rows.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        rows.forEach((row) => {
+            const tr = document.createElement('tr');
+            const editAction = row.type === 'buy' ? `editBuy(${row.id})` : `editSell(${row.id})`;
+            tr.innerHTML = `
+                <td>${row.date}</td>
+                <td>${row.item}</td>
+                <td>${row.company || ''}</td>
+                <td>${(row.initialShares || row.shares || 0).toLocaleString()}</td>
+                <td>$${(row.price || 0).toLocaleString()}</td>
+                <td>$${(row.fee || 0).toLocaleString()}</td>
+                <td>$${(row.tax || 0).toLocaleString()}</td>
+                <td>$${row.amount.toLocaleString()}</td>
+                <td>
+                    <div class="action-btns">
+                        <button class="btn-edit" onclick="${editAction}">編輯</button>
+                        <button class="btn-delete" onclick="deleteRecord('${row.type}', ${row.id})">🗑️</button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function calculateMainSummary() {
+        // 金額包含：日常存錢 + 初始設定開帳金額
+        const totalSaved = db.savings.reduce((sum, row) => sum + row.amount, 0);
+        const totalInitAmount = db.initAmounts.reduce((sum, row) => sum + row.amount, 0);
+        
+        const totalBuyCost = db.buys.reduce((sum, row) => sum + row.total, 0);
+        const totalSellRevenue = db.sells.reduce((sum, row) => sum + row.total, 0);
+        
+        // 總可用餘額加總初始開帳現金
+        const mainAvailable = totalSaved + totalInitAmount - totalBuyCost + totalSellRevenue;
+        const totalProfit = db.sells.reduce((sum, row) => sum + row.profit, 0);
+
+        document.getElementById('main-available').innerText = `$${mainAvailable.toLocaleString()}`;
+        document.getElementById('main-profit').innerText = `$${totalProfit.toLocaleString()}`;
+    }
+
+    function handleFormSubmit(event, type) {
+        event.preventDefault();
+        
+        if (type === 'saving') {
+            const data = {
+                id: editingId ? editingId : Date.now(),
+                date: document.getElementById('save-date').value,
+                item: document.getElementById('save-item').value,
+                amount: parseInt(document.getElementById('save-amount').value) || 0,
+                bank: document.getElementById('save-bank').value
+            };
+            if (editingId) {
+                const index = db.savings.findIndex(item => item.id === editingId);
+                db.savings[index] = data;
+            } else {
+                db.savings.push(data);
+            }
+        } else if (type === 'buy') {
+            const shares = parseFloat(document.getElementById('buy-shares').value) || 0;
+            const price = parseFloat(document.getElementById('buy-price').value) || 0;
+            const fee = parseFloat(document.getElementById('buy-fee').value) || 0;
+            const total = parseFloat(document.getElementById('buy-total').value) || 0;
+
+            const data = {
+                id: editingType === 'buy' && editingId ? editingId : Date.now(),
+                date: document.getElementById('buy-date').value,
+                type: document.getElementById('buy-type').value, 
+                company: document.getElementById('buy-company').value,
+                shares, price, fee, total
+            };
+            
+            if (editingType === 'buy' && editingId) {
+                const index = db.buys.findIndex(item => item.id === editingId);
+                if (index !== -1) {
+                    delete db.buys[index].initialShares;
+                    delete db.buys[index].fixedAdjustedPrice;
+                    db.buys[index] = { ...db.buys[index], ...data };
+                }
+            } else {
+                db.buys.push(data);
+            }
+        } else if (type === 'sell') {
+            const shares = parseFloat(document.getElementById('sell-shares').value) || 0;
+            const price = parseFloat(document.getElementById('sell-price').value) || 0;
+            const fee = parseFloat(document.getElementById('sell-fee').value) || 0;
+            const tax = parseFloat(document.getElementById('sell-tax').value) || 0;
+            const total = parseFloat(document.getElementById('sell-total').value) || 0;
+
+            const data = {
+                id: editingType === 'sell' && editingId ? editingId : Date.now(),
+                date: document.getElementById('sell-date').value,
+                company: document.getElementById('sell-company').value,
+                shares, price, fee, tax, total,
+                sellType: document.getElementById('sell-type').value,
+                profit: 0, performance: '0%', avgAdjustedBuyPrice: 0
+            };
+            if (editingType === 'sell' && editingId) {
+                const index = db.sells.findIndex(item => item.id === editingId);
+                if (index !== -1) db.sells[index] = data;
+            } else {
+                db.sells.push(data);
+            }
+        }
+
+        saveDataToStorage(); 
+        closeModal();
+        sortAllDataByDate();
+        refreshAllViews();
+    }
+
+    function editSaving(id) {
+        const data = db.savings.find(item => item.id === id);
+        if (!data) return;
+        openModal(); selectFormType('saving');
+        document.getElementById('save-date').value = data.date;
+        document.getElementById('save-item').value = data.item;
+        document.getElementById('save-amount').value = data.amount;
+        document.getElementById('save-bank').value = data.bank || '';
+        editingId = id; editingType = 'saving';
+    }
+
+    function editBuy(id) {
+        const data = db.buys.find(item => item.id === id);
+        if (!data) return;
+        openModal(); selectFormType('buy');
+        document.getElementById('buy-date').value = data.date;
+        document.getElementById('buy-type').value = data.type || '個股';
+        document.getElementById('buy-company').value = data.company;
+        document.getElementById('buy-shares').value = data.initialShares || data.shares;
+        document.getElementById('buy-price').value = data.price;
+        document.getElementById('buy-fee').value = data.fee;
+        document.getElementById('buy-total').value = data.total;
+        document.getElementById('buy-regular').checked = data.fee === 1;
+        document.getElementById('buy-fee').readOnly = data.fee === 1;
+        buyFeeManual = true;
+        editingId = id; editingType = 'buy';
+    }
+
+    function editSell(id) {
+        const data = db.sells.find(item => item.id === id);
+        if (!data) return;
+        openModal(); selectFormType('sell');
+        document.getElementById('sell-date').value = data.date;
+        document.getElementById('sell-type').value = data.sellType || '個股';
+        document.getElementById('sell-company').value = data.company;
+        document.getElementById('sell-shares').value = data.shares;
+        document.getElementById('sell-price').value = data.price;
+        document.getElementById('sell-fee').value = data.fee;
+        document.getElementById('sell-tax').value = data.tax;
+        document.getElementById('sell-total').value = data.total;
+        sellFeeManual = true; sellTaxManual = true;
+        editingId = id; editingType = 'sell';
+    }
+</script>
+
+</body>
+</html>
