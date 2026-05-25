@@ -94,7 +94,7 @@
         }
 
         .container {
-            max-width: 1050px;
+            max-width: 1400px;
             margin: 0 auto;
             position: relative;
         }
@@ -203,7 +203,7 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             margin-bottom: 30px;
         }
-        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
         th { background-color: #edf2f7; color: #4a5568; }
         
         .header-filter {
@@ -308,12 +308,8 @@
                         <th>性質</th>
                         <th>公司</th>
                         <th>持股股數</th>
-                        <th>成本單價</th>
-                        <th>今日現價</th>
-                        <th>付出成本</th>
-                        <th>目前現值</th>
-                        <th>未實現損益</th>
-                        <th>報酬率</th>
+                        <th>調整單價</th>
+                        <th>總成本</th>
                         <th>操作</th>
                     </tr>
                 </thead>
@@ -391,9 +387,10 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>日期</th>
                             <th>性質</th>
-                            <th>公司</th>
+                            <th>
+                                公司 <select id="unrealized-company-filter" class="header-filter" onchange="renderUnrealizedTable()"></select>
+                            </th>
                             <th>剩餘股數</th>
                             <th style="color: var(--primary-color);">調整單價</th>
                             <th>明細</th>
@@ -411,13 +408,15 @@
                     <thead>
                         <tr>
                             <th>日期</th>
-                            <th>公司</th>
+                            <th>
+                                公司 <select id="realized-company-filter" class="header-filter" onchange="renderRealizedTable()"></select>
+                            </th>
                             <th>股數</th>
-                            <th>單價</th>
+                            <th>成交價</th>
                             <th>手續費</th>
                             <th>證交稅</th>
                             <th>實拿金額</th>
-                            <th>買入單價</th>
+                            <th>買入成交價</th>
                             <th>損益</th>
                             <th>績效</th>
                             <th>操作</th>
@@ -434,9 +433,11 @@
                         <tr>
                             <th>日期</th>
                             <th>項目</th>
-                            <th>公司</th>
+                            <th>
+                                公司 <select id="transactions-company-filter" class="header-filter" onchange="renderTransactionTable()"></select>
+                            </th>
                             <th>股數</th>
-                            <th>單價</th>
+                            <th>成交價</th>
                             <th>手續費</th>
                             <th>證交稅</th>
                             <th>金額</th>
@@ -497,7 +498,7 @@
             <div class="form-group"><label>性質</label><select id="buy-type" required><option value="個股">個股</option><option value="ETF">ETF</option></select></div>
             <div class="form-group"><label>公司</label><input type="text" id="buy-company" placeholder="例如: 2330 台積電" required></div>
             <div class="form-group"><label>股數</label><input type="number" id="buy-shares" oninput="calcBuyTotal()" placeholder="0" required></div>
-            <div class="form-group"><label>單價</label><input type="number" step="0.01" id="buy-price" oninput="calcBuyTotal()" placeholder="0.00" required></div>
+            <div class="form-group"><label>成交價</label><input type="number" step="0.01" id="buy-price" oninput="calcBuyTotal()" placeholder="0.00" required></div>
             <div class="form-group form-group-inline">
                 <label>手續費</label>
                 <label class="inline-checkbox"><input type="checkbox" id="buy-regular" onchange="handleBuyRegularToggle()"> 定期定額</label>
@@ -512,7 +513,7 @@
             <div class="form-group"><label>性質</label><select id="sell-type" onchange="handleSellTypeChange()" required><option value="個股">個股</option><option value="ETF">ETF</option></select></div>
             <div class="form-group"><label>公司</label><input type="text" id="sell-company" placeholder="例如: 0050 元大台灣50" required></div>
             <div class="form-group"><label>股數</label><input type="number" id="sell-shares" oninput="calcSellTotal()" placeholder="0" required></div>
-            <div class="form-group"><label>單價</label><input type="number" step="0.01" id="sell-price" oninput="calcSellTotal()" placeholder="0.00" required></div>
+            <div class="form-group"><label>成交價</label><input type="number" step="0.01" id="sell-price" oninput="calcSellTotal()" placeholder="0.00" required></div>
             <div class="form-group"><label>手續費</label><input type="number" id="sell-fee" oninput="handleSellFeeInput()" required></div>
             <div class="form-group"><label>證交稅</label><input type="number" id="sell-tax" oninput="handleSellTaxInput()" required></div>
             <div class="form-group"><label>實拿金額</label><input type="number" id="sell-total" readonly></div>
@@ -566,15 +567,15 @@
             </div>
             <div class="form-group">
                 <label>持股股數</label>
-                <input type="number" id="init-stk-shares" placeholder="零股或整張，例如: 1000" required>
+                <input type="number" id="init-stk-shares" oninput="calcInitStockTotal()" placeholder="零股或整張，例如: 1000" required>
             </div>
             <div class="form-group">
-                <label>成本單價</label>
-                <input type="number" step="0.01" id="init-stk-cost-price" placeholder="接手時的每股成本單價" required>
+                <label>調整單價</label>
+                <input type="number" step="0.01" id="init-stk-cost-price" oninput="calcInitStockTotal()" placeholder="接手時的每股調整後單價" required>
             </div>
             <div class="form-group">
-                <label>今日現價 (估算損益用)</label>
-                <input type="number" step="0.01" id="init-stk-current-price" placeholder="目前的市場價格" required>
+                <label>總成本 (可手動微調)</label>
+                <input type="number" id="init-stk-total">
             </div>
             <button type="submit" class="submit-btn">儲存初始持股</button>
         </form>
@@ -669,6 +670,15 @@
             }
         });
 
+        // 也處理初始股票的資料標準化 (相容舊資料與支援手動微調總成本)
+        db.initStocks.forEach(s => {
+            if (!s.initialShares) s.initialShares = s.shares;
+            if (s.total === undefined) s.total = Math.floor(s.shares * s.costPrice);
+            if (!s.fixedAdjustedPrice) {
+                s.fixedAdjustedPrice = (s.total / s.initialShares).toFixed(2);
+            }
+        });
+
         // 建立整合用的臨時買入陣列 (把日常買入 + 初始設定的股票合併，以支援後續賣出計算)
         let mergedBuys = [];
         
@@ -683,6 +693,8 @@
                 initialShares: b.initialShares,
                 fixedAdjustedPrice: b.fixedAdjustedPrice,
                 total: b.total,
+                price: b.price,
+                fee: b.fee,
                 isInit: false
             });
         });
@@ -695,9 +707,10 @@
                 type: s.type || '個股',
                 company: s.company,
                 shares: s.shares, // 當前賸餘會隨賣出被扣除
-                initialShares: s.initialShares || s.shares,
-                fixedAdjustedPrice: s.costPrice.toFixed(2),
-                total: Math.round(s.shares * s.costPrice),
+                initialShares: s.initialShares,
+                fixedAdjustedPrice: s.fixedAdjustedPrice,
+                total: s.total,
+                costPrice: s.costPrice,
                 isInit: true
             });
         });
@@ -780,6 +793,40 @@
         calculateMainSummary();
     }
 
+    // 輔助函數：取得不重複的公司名稱
+    function getUniqueCompanies(records) {
+        const companies = new Set();
+        records.forEach(record => {
+            if (record.company) {
+                companies.add(record.company);
+            }
+        });
+        const sortedCompanies = Array.from(companies).sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+        return ['全部', ...sortedCompanies];
+    }
+
+    // 輔助函數：填充篩選下拉選單
+    function populateFilterDropdown(dropdownId, companies, currentFilter) {
+        const dropdown = document.getElementById(dropdownId);
+        if (!dropdown) return;
+        dropdown.innerHTML = '';
+        companies.forEach(company => {
+            const option = document.createElement('option');
+            option.value = company;
+            option.textContent = company;
+            if (company === currentFilter) {
+                option.selected = true;
+            }
+            dropdown.appendChild(option);
+        });
+    }
+
+    function calcInitStockTotal() {
+        const shares = parseFloat(document.getElementById('init-stk-shares').value) || 0;
+        const price = parseFloat(document.getElementById('init-stk-cost-price').value) || 0;
+        document.getElementById('init-stk-total').value = Math.floor(shares * price);
+    }
+
     function switchTab(page) {
         document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));
         document.querySelectorAll('.page').forEach(section => section.classList.remove('active'));
@@ -799,7 +846,6 @@
         document.getElementById('form-init-stock').style.display = 'none';
         
         const today = new Date().toISOString().split('T')[0];
-        editingId = null;
 
         if (mode === 'amount') {
             document.getElementById('init-modal-title').innerText = '💰 新增初始開帳金額';
@@ -807,6 +853,7 @@
             document.getElementById('init-amt-date').value = today;
             document.getElementById('init-amt-bank').value = '';
             document.getElementById('init-amt-value').value = '';
+            editingId = null;
             editingType = 'initAmount';
         } else {
             document.getElementById('init-modal-title').innerText = '📈 新增接手初始持股';
@@ -816,7 +863,8 @@
             document.getElementById('init-stk-company').value = '';
             document.getElementById('init-stk-shares').value = '';
             document.getElementById('init-stk-cost-price').value = '';
-            document.getElementById('init-stk-current-price').value = '';
+            document.getElementById('init-stk-total').value = '';
+            editingId = null;
             editingType = 'initStock';
         }
     }
@@ -851,6 +899,7 @@
         e.preventDefault();
         const shares = parseFloat(document.getElementById('init-stk-shares').value) || 0;
         const costPrice = parseFloat(document.getElementById('init-stk-cost-price').value) || 0;
+        const total = parseInt(document.getElementById('init-stk-total').value) || 0;
         
         const data = {
             id: editingId ? editingId : Date.now(),
@@ -860,8 +909,11 @@
             shares: shares,
             initialShares: shares, // 鎖定初始總股數
             costPrice: costPrice,
-            currentPrice: parseFloat(document.getElementById('init-stk-current-price').value) || 0
+            total: total, // 儲存使用者輸入(或微調後)的總成本
+            currentPrice: costPrice
         };
+        // 根據最終確定的總成本計算固定調整單價
+        data.fixedAdjustedPrice = (data.total / data.initialShares).toFixed(2);
 
         if (editingId && editingType === 'initStock') {
             const index = db.initStocks.findIndex(item => item.id === editingId);
@@ -880,6 +932,7 @@
         const data = db.initAmounts.find(item => item.id === id);
         if (!data) return;
         openInitModal('amount');
+        document.getElementById('init-modal-title').innerText = '💰 編輯初始開帳金額';
         document.getElementById('init-amt-date').value = data.date;
         document.getElementById('init-amt-bank').value = data.bank;
         document.getElementById('init-amt-value').value = data.amount;
@@ -891,12 +944,14 @@
         const data = db.initStocks.find(item => item.id === id);
         if (!data) return;
         openInitModal('stock');
+        document.getElementById('init-modal-title').innerText = '📈 編輯既有持股';
         document.getElementById('init-stk-date').value = data.date;
         document.getElementById('init-stk-type').value = data.type || '個股';
         document.getElementById('init-stk-company').value = data.company;
         document.getElementById('init-stk-shares').value = data.initialShares || data.shares;
         document.getElementById('init-stk-cost-price').value = data.costPrice;
-        document.getElementById('init-stk-current-price').value = data.currentPrice || data.costPrice;
+        // 優先帶入存檔的總成本，若無則按公式計算
+        document.getElementById('init-stk-total').value = data.total !== undefined ? data.total : Math.floor(data.shares * data.costPrice);
         editingId = id;
         editingType = 'initStock';
     }
@@ -936,13 +991,8 @@
         const tbody = document.getElementById('init-stock-table-body');
         tbody.innerHTML = '';
         db.initStocks.forEach(row => {
-            const cost = Math.round(row.shares * row.costPrice);
-            const value = Math.round(row.shares * row.currentPrice);
-            const diff = value - cost;
-            const ratio = cost > 0 ? ((diff / cost) * 100).toFixed(2) : '0.00';
-            const profitColor = diff >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
-            const prefix = diff > 0 ? '+' : '';
-
+            // 優先使用標準化後的總成本欄位
+            const cost = row.total !== undefined ? row.total : Math.floor(row.shares * row.costPrice);
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${row.date}</td>
@@ -950,11 +1000,7 @@
                 <td>${row.company}</td>
                 <td>${row.shares.toLocaleString()}</td>
                 <td>$${row.costPrice.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
-                <td>$${row.currentPrice.toLocaleString(undefined, {minimumFractionDigits:2})}</td>
                 <td>$${cost.toLocaleString()}</td>
-                <td>$${value.toLocaleString()}</td>
-                <td style="color: ${profitColor}; font-weight: bold;">${prefix}$${diff.toLocaleString()}</td>
-                <td style="color: ${profitColor}; font-weight: bold;">${prefix}${ratio}%</td>
                 <td>
                     <div class="action-btns">
                         <button class="btn-edit" onclick="editInitStock(${row.id})">編輯</button>
@@ -1038,13 +1084,13 @@
         if (document.getElementById('buy-regular').checked) {
             fee = 1; feeInput.value = fee;
         } else {
-            let defaultFee = Math.round(rawSum * 0.001425);
+            let defaultFee = Math.floor(rawSum * 0.001425);
             if (rawSum > 0 && defaultFee < 20) defaultFee = 20;
             const manualFee = parseFloat(feeInput.value);
-            fee = buyFeeManual && !isNaN(manualFee) ? Math.round(manualFee) : defaultFee;
+            fee = buyFeeManual && !isNaN(manualFee) ? Math.floor(manualFee) : defaultFee;
             if (rawSum > 0 || buyFeeManual) feeInput.value = fee;
         }
-        document.getElementById('buy-total').value = Math.round(rawSum + (fee || 0));
+        document.getElementById('buy-total').value = Math.floor(rawSum + (fee || 0));
     }
 
     function calcSellTotal() {
@@ -1055,20 +1101,20 @@
         const taxInput = document.getElementById('sell-tax');
         const sellType = document.getElementById('sell-type').value;
 
-        let defaultFee = Math.round(rawSum * 0.001425);
+        let defaultFee = Math.floor(rawSum * 0.001425);
         if (rawSum > 0 && defaultFee < 20) defaultFee = 20;
         const taxRate = (sellType === 'ETF') ? 0.001 : 0.003;
-        const defaultTax = Math.round(rawSum * taxRate);
+        const defaultTax = Math.floor(rawSum * taxRate);
 
         const manualFee = parseFloat(feeInput.value);
         const manualTax = parseFloat(taxInput.value);
 
-        const fee = sellFeeManual && !isNaN(manualFee) ? Math.round(manualFee) : defaultFee;
-        const tax = sellTaxManual && !isNaN(manualTax) ? Math.round(manualTax) : defaultTax;
+        const fee = sellFeeManual && !isNaN(manualFee) ? Math.floor(manualFee) : defaultFee;
+        const tax = sellTaxManual && !isNaN(manualTax) ? Math.floor(manualTax) : defaultTax;
 
         if (rawSum > 0 || sellFeeManual) feeInput.value = fee;
         if (rawSum > 0 || sellTaxManual) taxInput.value = tax;
-        document.getElementById('sell-total').value = Math.round(rawSum - (fee || 0) - (tax || 0));
+        document.getElementById('sell-total').value = Math.floor(rawSum - (fee || 0) - (tax || 0));
     }
 
     function deleteRecord(type, id) {
@@ -1172,68 +1218,112 @@
     // 渲染未實現損益表 (已整合初始持股)
     function renderUnrealizedTable() {
         const tbody = document.getElementById('unrealized-table-body');
-        tbody.innerHTML = '';
-        
-        unrealizedInventory.forEach((row) => {
-            const tr = document.createElement('tr');
-            const d = row.rawRecord;
+        // 確保篩選器選項已更新
+        const currentFilter = document.getElementById('unrealized-company-filter') ? document.getElementById('unrealized-company-filter').value : '全部';
+        populateFilterDropdown('unrealized-company-filter', getUniqueCompanies(unrealizedInventory), currentFilter);
 
+        tbody.innerHTML = '';
+
+        // 按公司進行分組
+        const groups = {};
+        unrealizedInventory.forEach(item => {
+            if (!groups[item.company]) {
+                groups[item.company] = {
+                    company: item.company,
+                    type: item.type,
+                    isInit: item.isInit,
+                    id: item.id, // 為了明細展開的ID
+                    items: []
+                };
+            }
+            groups[item.company].items.push(item);
+        });
+
+        // 將公司名稱進行排序 (中文環境下預設依筆劃或代號排序)
+        const sortedCompanies = Object.keys(groups).sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+        sortedCompanies.forEach(companyName => {
+            // 如果有篩選，且當前公司不符合篩選條件，則跳過
+            if (currentFilter !== '全部' && companyName !== currentFilter) return;
+
+            const group = groups[companyName];
+
+            // 明細中依照日期排列
+            group.items.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            const totalRemainingShares = group.items.reduce((sum, item) => sum + item.remainingShares, 0);
+            const totalRemainingCost = group.items.reduce((sum, item) => sum + item.remainingCost, 0);
+            const avgAdjustedPrice = (totalRemainingShares > 0) ? (totalRemainingCost / totalRemainingShares).toFixed(2) : "0.00";
+            const groupId = `group-${companyName.replace(/[^a-zA-Z0-9\u4E00-\u9FFF]/g, '-')}`;
+
+            // 建立外層主列 (無日期欄位)
+            const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${row.date}</td>
-                <td>${row.type} ${row.isInit ? '<span style="font-size:11px; color:var(--primary-color);">[初始]</span>' : ''}</td>
-                <td style="${row.isInit ? 'font-weight: bold; color: var(--primary-color);' : ''}">${row.company}</td>
-                <td>${row.remainingShares.toLocaleString()}</td>
-                <td style="font-weight: bold; color: var(--primary-color);">$${parseFloat(row.adjustedPrice).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                <td><button class="btn-detail" onclick="toggleDetailRow('${row.id}')">明細 🔍</button></td>
-                <td>$${row.remainingCost.toLocaleString()}</td>
+                <td>${group.type} ${group.isInit ? '<span style="font-size:11px; color:var(--primary-color);">[初始]</span>' : ''}</td>
+                <td style="${group.isInit ? 'font-weight: bold; color: var(--primary-color);' : ''}">${group.company}</td>
+                <td>${totalRemainingShares.toLocaleString()}</td>
+                <td style="font-weight: bold; color: var(--primary-color);">$${parseFloat(avgAdjustedPrice).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td><button class="btn-detail" onclick="toggleDetailRow('${groupId}')">明細 🔍</button></td>
+                <td>$${totalRemainingCost.toLocaleString()}</td>
                 <td>
                     <div class="action-btns">
-                        <button class="btn-sell-action" onclick="quickSell('${row.company}', ${row.remainingShares}, '${row.type}', '${row.adjustedPrice}')">賣出</button>
+                        <button class="btn-sell-action" onclick="quickSell('${group.company}', ${totalRemainingShares}, '${group.type}', '${avgAdjustedPrice}')">賣出</button>
                     </div>
                 </td>
             `;
             tbody.appendChild(tr);
 
-            // 下方展開細項
+            // 建立內層明細列
             const detailTr = document.createElement('tr');
-            detailTr.id = `detail-${row.id}`;
+            detailTr.id = `detail-${groupId}`;
             detailTr.className = 'detail-row';
             
-            const actionHtml = row.isInit 
-                ? `<span style="font-size:12px; color:#a0aec0;">請至「初始設定」修改</span>`
-                : `<div class="action-btns">
-                    <button class="btn-edit" onclick="editBuy(${d.id})">編輯</button>
-                    <button class="btn-delete" onclick="deleteRecord('buy', ${d.id})">🗑️</button>
-                   </div>`;
+            let detailItemsHtml = '';
+            group.items.forEach(item => {
+                const d = item.rawRecord;
+                const actionHtml = item.isInit 
+                    ? `<span style="font-size:12px; color:#a0aec0;">請至「初始設定」修改</span>`
+                    : `<div class="action-btns">
+                        <button class="btn-edit" onclick="editBuy(${item.id})">編輯</button>
+                        <button class="btn-delete" onclick="deleteRecord('buy', ${item.id})">🗑️</button>
+                       </div>`;
+                
+                detailItemsHtml += `
+                    <tr>
+                        <td>${item.date}</td>
+                        <td>${item.type}</td>
+                        <td>${item.company}</td>
+                        <td>${(d.initialShares || d.shares).toLocaleString()}</td>
+                        <td>$${parseFloat(item.isInit ? d.costPrice : d.price).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                        <td>$${(d.fee || 0).toLocaleString()}</td>
+                        <td>$${d.total.toLocaleString()}</td>
+                        <td>$${parseFloat(item.adjustedPrice).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                        <td>${item.remainingShares.toLocaleString()}</td>
+                        <td>${actionHtml}</td>
+                    </tr>
+                `;
+            });
 
             detailTr.innerHTML = `
-                <td colspan="8">
+                <td colspan="7">
                     <div class="detail-container">
-                        <h4 style="margin: 0 0 10px 0; color: var(--primary-color);">【${row.company}】單筆原始買入細項：</h4>
+                        <h4 style="margin: 0 0 10px 0; color: var(--primary-color);">【${group.company}】買入與庫存明細：</h4>
                         <table class="detail-table">
                             <thead>
                                 <tr>
                                     <th>日期</th>
                                     <th>性質</th>
                                     <th>公司</th>
-                                    <th>原始股數</th>
-                                    <th>成交/成本單價</th>
+                                    <th>股數</th>
+                                    <th>成交價</th>
                                     <th>手續費</th>
                                     <th>總成本</th>
+                                    <th>每股單價</th>
+                                    <th>剩餘股數</th>
                                     <th>操作</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr>
-                                    <td>${d.date}</td>
-                                    <td>${d.type || '個股'}</td>
-                                    <td>${d.company}</td>
-                                    <td>${d.initialShares.toLocaleString()}</td>
-                                    <td>$${parseFloat(d.fixedAdjustedPrice).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                                    <td>$${(d.fee || 0).toLocaleString()}</td>
-                                    <td>$${d.total.toLocaleString()}</td>
-                                    <td>${actionHtml}</td>
-                                </tr>
+                                ${detailItemsHtml}
                             </tbody>
                         </table>
                     </div>
@@ -1245,8 +1335,15 @@
 
     function renderRealizedTable() {
         const tbody = document.getElementById('realized-table-body');
+        const companyFilter = document.getElementById('realized-company-filter');
+        const currentCompanyFilter = companyFilter ? companyFilter.value : '全部';
+
+        populateFilterDropdown('realized-company-filter', getUniqueCompanies(db.sells), currentCompanyFilter);
+
         tbody.innerHTML = '';
-        db.sells.forEach((row) => {
+        const filteredSells = db.sells.filter(row => currentCompanyFilter === '全部' || row.company === currentCompanyFilter);
+
+        filteredSells.forEach((row) => {
             const tr = document.createElement('tr');
             let profitColor = row.profit >= 0 ? 'var(--success-color)' : 'var(--danger-color)';
             let prefix = row.profit > 0 ? '+' : '';
@@ -1275,14 +1372,21 @@
 
     function renderTransactionTable() {
         const tbody = document.getElementById('transaction-table-body');
-        tbody.innerHTML = '';
+        const companyFilter = document.getElementById('transactions-company-filter');
+        const currentCompanyFilter = companyFilter ? companyFilter.value : '全部';
+
         const rows = [
             ...db.buys.map(row => ({ ...row, item: '買入', type: 'buy', tax: 0, amount: -(row.total || 0) })),
             ...db.sells.map(row => ({ ...row, item: '賣出', type: 'sell', amount: row.total || 0 }))
         ];
         rows.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-        rows.forEach((row) => {
+        populateFilterDropdown('transactions-company-filter', getUniqueCompanies(rows), currentCompanyFilter);
+
+        tbody.innerHTML = '';
+        const filteredTransactions = rows.filter(row => currentCompanyFilter === '全部' || row.company === currentCompanyFilter);
+
+        filteredTransactions.forEach((row) => {
             const tr = document.createElement('tr');
             const editAction = row.type === 'buy' ? `editBuy(${row.id})` : `editSell(${row.id})`;
             tr.innerHTML = `
