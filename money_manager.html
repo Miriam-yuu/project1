@@ -1756,7 +1756,7 @@
                         <td>${row.date}</td>
                         <td>${row.name}</td>
                         <td>${sub.units.toLocaleString(undefined, {minimumFractionDigits: 4})}</td>
-                        <td>$${row.price.toLocaleString(undefined, {minimumFractionDigits: 4})}</td>
+                        <td style="font-weight: bold;">$${row.price.toLocaleString(undefined, {minimumFractionDigits: 4})}</td>
                         <td>$${Math.round(sub.fee).toLocaleString()}</td>
                         <td>$${Math.round(sub.total).toLocaleString()}</td>
                         <td style="font-weight: bold; color: #4a5568;">$${(sub.buyPrice || 0).toLocaleString(undefined, {minimumFractionDigits: 4})}</td>
