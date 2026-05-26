@@ -379,14 +379,28 @@
                 <button class="add-btn" title="新增資料" onclick="openModal()">+</button>
             </div>
 
-            <div class="tabs">
-                <div class="tab active" onclick="switchTab('saving')">存錢記錄</div>
-                <div class="tab" onclick="switchTab('unrealized')">未實現損益</div>
-                <div class="tab" onclick="switchTab('realized')">已實現損益</div>
-                <div class="tab" onclick="switchTab('transactions')">交易總明細</div>
-                <div class="tab" onclick="switchTab('fund-buy')">基金買入</div>
-                <div class="tab" onclick="switchTab('fund-sell')">基金賣出</div>
-                <div class="tab" onclick="switchTab('fund-transactions')">基金總明細</div>
+            <div class="tabs-container">
+                <div class="tabs tabs-level-1">
+                    <div class="tab active" data-target-group="saving" onclick="switchParentTab(this, 'saving')">存錢記錄</div>
+                    <div class="tab" data-target-group="stock" onclick="switchParentTab(this, 'stock')">股票</div>
+                    <div class="tab" data-target-group="fund" onclick="switchParentTab(this, 'fund')">基金</div>
+                </div>
+
+                <div class="tabs-level-2-group" id="tabs-group-stock" style="display: none; margin-bottom: 20px;">
+                    <div class="tabs tabs-level-2">
+                        <div class="tab active" onclick="switchChildTab(this, 'unrealized', 'stock')">未實現損益</div>
+                        <div class="tab" onclick="switchChildTab(this, 'realized', 'stock')">已實現損益</div>
+                        <div class="tab" onclick="switchChildTab(this, 'transactions', 'stock')">交易總明細</div>
+                    </div>
+                </div>
+
+                <div class="tabs-level-2-group" id="tabs-group-fund" style="display: none; margin-bottom: 20px;">
+                    <div class="tabs tabs-level-2">
+                        <div class="tab active" onclick="switchChildTab(this, 'fund-buy', 'fund')">基金買入</div>
+                        <div class="tab" onclick="switchChildTab(this, 'fund-sell', 'fund')">基金賣出</div>
+                        <div class="tab" onclick="switchChildTab(this, 'fund-transactions', 'fund')">基金總明細</div>
+                    </div>
+                </div>
             </div>
 
             <!-- 存錢記錄子頁面 -->
@@ -754,6 +768,12 @@
         sortAllDataByDate();
         refreshAllViews();
         switchMainSection('ledger'); // 依照要求，預設顯示第二個分頁：股市記帳工具
+
+        // 初始化分頁到「存錢記錄」
+        const initialParentTab = document.querySelector('.tabs-level-1 .tab[data-target-group="saving"]');
+        if (initialParentTab) {
+            switchParentTab(initialParentTab, 'saving');
+        }
     };
 
     // 側邊欄切換函式
@@ -1024,10 +1044,33 @@
         document.getElementById('init-stk-total').value = Math.floor(shares * price);
     }
 
-    function switchTab(page) {
-        document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));
-        document.querySelectorAll('.page').forEach(section => section.classList.remove('active'));
-        document.querySelector(`[onclick="switchTab('${page}')"]`).classList.add('active');
+    function switchParentTab(element, group) {
+        // 第一層標籤切換
+        document.querySelectorAll('.tabs-level-1 .tab').forEach(t => t.classList.remove('active'));
+        element.classList.add('active');
+
+        // 隱藏所有第二層標籤與頁面
+        document.querySelectorAll('.tabs-level-2-group').forEach(g => g.style.display = 'none');
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+
+        if (group === 'saving') {
+            document.getElementById('saving-page').classList.add('active');
+        } else {
+            const groupEl = document.getElementById(`tabs-group-${group}`);
+            if (groupEl) {
+                groupEl.style.display = 'block';
+                const firstChild = groupEl.querySelector('.tab');
+                if (firstChild) firstChild.click(); // 自動選中該群組第一個子分頁
+            }
+        }
+    }
+
+    function switchChildTab(element, page, group) {
+        const groupEl = document.getElementById(`tabs-group-${group}`);
+        groupEl.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        element.classList.add('active');
+
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(`${page}-page`).classList.add('active');
     }
 
@@ -1456,7 +1499,12 @@
 
     function quickSell(company, shares, type, adjustedPrice) {
         switchMainSection('ledger');
-        switchTab('unrealized');
+        // 切換至股票父分頁與未實現子分頁
+        const parentTab = document.querySelector('.tab[data-target-group="stock"]');
+        switchParentTab(parentTab, 'stock');
+        const childTab = document.querySelector('#tabs-group-stock .tab:nth-child(1)');
+        switchChildTab(childTab, 'unrealized', 'stock');
+
         document.getElementById('addModal').style.display = 'flex';
         resetDates();
         editingId = null; editingType = null;
@@ -1470,7 +1518,12 @@
 
     function quickFundSell(name, units, price) {
         switchMainSection('ledger');
-        switchTab('fund-buy');
+        // 切換至基金父分頁與基金買入(庫存)子分頁
+        const parentTab = document.querySelector('.tab[data-target-group="fund"]');
+        switchParentTab(parentTab, 'fund');
+        const childTab = document.querySelector('#tabs-group-fund .tab:nth-child(1)');
+        switchChildTab(childTab, 'fund-buy', 'fund');
+
         document.getElementById('addModal').style.display = 'flex';
         resetDates();
         editingId = null; editingType = null;
