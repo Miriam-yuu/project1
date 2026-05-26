@@ -142,9 +142,6 @@
 
         /* 新增按鈕 */
         .add-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
             background-color: var(--primary-color);
             color: white;
             border: none;
@@ -158,7 +155,8 @@
             justify-content: center;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             transition: transform 0.2s;
-            z-index: 10;
+            flex-shrink: 0;
+            align-self: center;
         }
         .add-btn:hover { transform: scale(1.1); }
 
@@ -364,8 +362,6 @@
     <!-- ================= 分頁二：股市記帳工具 (預設顯示) ================= -->
     <div id="section-ledger" class="app-section active">
         <div class="container">
-            <button class="add-btn" onclick="openModal()">+</button>
-
             <div class="main-summary">
                 <div class="summary-card">
                     <h3>總可用金額 (含初始現金)</h3>
@@ -375,6 +371,7 @@
                     <h3>賣出獲利</h3>
                     <p id="main-profit" style="color: var(--success-color);">$0</p>
                 </div>
+                <button class="add-btn" title="新增記帳資料" onclick="openModal()">+</button>
             </div>
 
             <div class="tabs">
