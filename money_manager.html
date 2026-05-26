@@ -460,14 +460,16 @@
                                         <select id="saving-filter" class="header-filter" onchange="renderSavingTable()">
                                             <option value="全部">全部</option>
                                             <option value="現金">現金</option>
-                                            <option value="股利">股利</option>
-                                            <option value="初始資金">⚙️ 初始資金</option>
+                                            <option value="配息">配息</option>
+                                            <option value="初始金額">初始金額</option>
                                         </select>
                                     </th>
+                                    <th>
+                                        公司/基金名稱
+                                        <select id="saving-company-filter" class="header-filter" onchange="renderSavingTable()"></select>
+                                    </th>
                                     <th>金額</th>
-                                    <th>存入</th>
-                                    <th>累積</th>
-                                    <th>距離目標</th>
+                                    <th>銀行</th>
                                     <th>操作</th>
                                 </tr>
                             </thead>
@@ -627,7 +629,7 @@
                 <label>項目</label>
                 <select id="save-item" required>
                     <option value="現金">現金</option>
-                    <option value="股利">股利</option>
+                    <option value="配息">配息</option>
                 </select>
             </div>
             <div class="form-group">
@@ -729,6 +731,10 @@
                 <div class="form-group">
                     <label>公司/基金名稱</label>
                     <div id="div-cash-name-wrapper"></div>
+                </div>
+                <div class="form-group">
+                    <label>存入銀行（選填）</label>
+                    <div id="div-cash-bank-wrapper"></div>
                 </div>
                 <div class="form-group"><label>金額</label><input type="number" id="div-cash-amount" placeholder="請輸入配息金額"></div>
             </div>
@@ -1385,6 +1391,7 @@
         document.getElementById('div-stock-shares').value = '';
         document.getElementById('div-cash-cat').value = '股票/ETF';
         document.getElementById('div-cash-amount').value = '';
+        populateNameSelector('div-cash-bank', getAllUniqueBanks(), ''); // Reset for cash dividend bank
         toggleDividendFields();
 
         buyFeeManual = false; sellFeeManual = false; sellTaxManual = false;
@@ -1419,7 +1426,7 @@
         else if (type === 'sell') populateNameSelector('sell-company', getAllUniqueStockCompanies(), '');
         else if (type === 'fund-buy') populateNameSelector('fund-buy-name', getAllUniqueFundNames(), '');
         else if (type === 'fund-sell') populateNameSelector('fund-sell-name', getAllUniqueFundNames(), '');
-        else if (type === 'dividend') toggleDividendFields();
+        else if (type === 'dividend') { toggleDividendFields(); populateNameSelector('div-cash-bank', getAllUniqueBanks(), ''); }
     }
 
     function toggleDividendFields() {
@@ -1665,13 +1672,15 @@
         tbody.innerHTML = '';
         const targetPrice = parseFloat(document.getElementById('target-input').value) || 0;
         const filterValue = document.getElementById('saving-filter').value;
+        const companyFilter = document.getElementById('saving-company-filter');
+        const currentCompanyFilter = companyFilter ? companyFilter.value : '全部';
         
         // 建立一個融合日常存錢 + 初始設定金額的陣列
         let combinedSavings = [];
         
         // 放入常規存錢
         db.savings.forEach(s => {
-            combinedSavings.push({ ...s, isInit: false });
+            combinedSavings.push({ ...s, company: '-', isInit: false, displayItem: s.item });
         });
         
         // 放入初始設定金額 (標記特殊項目與旗標)
@@ -1680,6 +1689,8 @@
                 id: i.id,
                 date: i.date,
                 item: '初始金額',
+                displayItem: '初始金額',
+                company: '-',
                 amount: i.amount,
                 bank: i.bank,
                 isInit: true
@@ -1691,8 +1702,11 @@
             combinedSavings.push({
                 id: cd.id,
                 date: cd.date,
-                item: `配息 (${cd.name})`,
+                item: '配息',
+                displayItem: '配息',
+                company: cd.name,
                 amount: cd.amount,
+                bank: cd.bank,
                 isInit: false,
                 isCashDiv: true
             });
@@ -1701,45 +1715,36 @@
         // 依日期排序
         combinedSavings.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-        let cumulativeAll = 0;   // 用於計算顯示在表格上的帳戶累積總額
-        let cumulativeSelf = 0;  // 用於計算「自己存」的金額 (扣除初始開帳金額)
+        populateFilterDropdown('saving-company-filter', getUniqueCompanies(combinedSavings), currentCompanyFilter);
 
         combinedSavings.forEach((row) => {
-            if (filterValue !== '全部' && row.item !== filterValue) return;
+            if (filterValue !== '全部' && row.displayItem !== filterValue) return;
+            if (currentCompanyFilter !== '全部' && row.company !== currentCompanyFilter) return;
             
-            cumulativeAll += row.amount;
-            if (!row.isInit) {
-                cumulativeSelf += row.amount; // 只有非初始開帳金額才會累加到個人存錢進度
-            }
-            
-            // 距離目標是用「自己存的總和」去算
-            let distance = Math.max(0, targetPrice - cumulativeSelf);
-
             const tr = document.createElement('tr');
-            // 初始設定金額不可在日常工具中隨便修改，需去第一分頁改
-            const actionHtml = row.isInit 
-                ? `<span style="font-size:12px; color:#a0aec0;">請至「初始設定」修改</span>`
-                : `<div class="action-btns">
-                    <button class="btn-edit" onclick="editSaving(${row.id})">編輯</button>
-                    <button class="btn-delete" onclick="deleteRecord('saving', ${row.id})">🗑️</button>
-                   </div>`;
+            let actionHtml = '';
+            if (row.isInit) {
+                actionHtml = `<span style="font-size:12px; color:#a0aec0;">請至「初始設定」修改</span>`;
+            } else if (row.isCashDiv) {
+                actionHtml = `<div class="action-btns"><button class="btn-edit" onclick="editCashDiv(${row.id})">編輯</button><button class="btn-delete" onclick="deleteRecord('cashDiv', ${row.id})">🗑️</button></div>`;
+            } else {
+                actionHtml = `<div class="action-btns"><button class="btn-edit" onclick="editSaving(${row.id})">編輯</button><button class="btn-delete" onclick="deleteRecord('saving', ${row.id})">🗑️</button></div>`;
+            }
 
             tr.innerHTML = `
                 <td style="${row.isInit ? 'color: var(--primary-color); font-weight:bold;' : ''}">${row.date}</td>
-                <td>${row.isInit ? '⚙️ 初始金額' : row.item}</td>
+                <td>${row.displayItem}</td>
+                <td>${row.company}</td>
                 <td>$${row.amount.toLocaleString()}</td>
                 <td>${row.bank || ''}</td>
-                <td>$${cumulativeAll.toLocaleString()}</td>
-                <td>${row.isInit ? '-' : '$' + distance.toLocaleString()}</td>
                 <td>${actionHtml}</td>
             `;
             tbody.appendChild(tr);
         });
 
-        // 更新上方的統計看板（自動排除初始金額，不記入目標）
-        const totalRegularSaved = db.savings.reduce((sum, row) => sum + row.amount, 0);
-        const totalCashDiv = db.cashDividends.reduce((sum, row) => sum + row.amount, 0);
-        const totalSelfSaved = totalRegularSaved + totalCashDiv;
+        // 更新看板：僅「項目為現金」的金額計入已存入目標
+        const totalRegularSaved = db.savings.filter(s => s.item === '現金').reduce((sum, row) => sum + row.amount, 0);
+        const totalSelfSaved = totalRegularSaved;
         let currentDistance = Math.max(0, targetPrice - totalSelfSaved);
         
         document.getElementById('summary-saved').innerText = `$${totalSelfSaved.toLocaleString()}`;
@@ -2275,7 +2280,8 @@
                     date: document.getElementById('div-date').value,
                     category: document.getElementById('div-cash-cat').value,
                     name: getNameFromSelector('div-cash-name'),
-                    amount: parseInt(document.getElementById('div-cash-amount').value) || 0
+                    amount: parseInt(document.getElementById('div-cash-amount').value) || 0,
+                    bank: getNameFromSelector('div-cash-bank') // Capture bank for cash dividend
                 };
                 if (editingType === 'cashDiv' && editingId) {
                     const idx = db.cashDividends.findIndex(i => i.id === editingId);
@@ -2386,6 +2392,7 @@
         document.getElementById('div-cash-cat').value = data.category;
         populateNameSelector('div-cash-name', (data.category === '股票/ETF' ? getAllUniqueStockCompanies() : getAllUniqueFundNames()), data.name);
         document.getElementById('div-cash-amount').value = data.amount;
+        populateNameSelector('div-cash-bank', getAllUniqueBanks(), data.bank || ''); // Populate bank for cash dividend
         editingId = id; editingType = 'cashDiv';
     }
 </script>
