@@ -23,6 +23,7 @@
             color: #2d3748;
             display: flex;
             min-height: 100vh;
+            overflow-x: hidden;
         }
 
         /* 左側側邊選單 */
@@ -34,18 +35,38 @@
             flex-direction: column;
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
             position: fixed;
-            top: 0; bottom: 0; left: 0;
+            top: 60px; /* 留出頂部導覽列空間 */
+            bottom: 0; left: 0;
             z-index: 100;
+            transition: transform 0.3s ease;
         }
 
-        .sidebar-brand {
-            padding: 25px 20px;
+        /* 頂部導覽列 */
+        .top-header {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 60px;
+            background-color: #1a202c;
+            color: white;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            z-index: 110;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .header-toggle {
+            cursor: pointer;
+            font-size: 24px;
+            margin-right: 20px;
+            color: #cbd5e0;
+        }
+        .header-toggle:hover { color: white; }
+
+        .header-brand {
             font-size: 20px;
             font-weight: bold;
             letter-spacing: 1px;
-            border-bottom: 1px solid #4a5568;
-            text-align: center;
-            background: #1a202c;
         }
 
         .sidebar-menu {
@@ -79,10 +100,20 @@
 
         /* 右側主內容區 */
         .main-wrapper {
+            margin-top: 60px; /* 確保內容不被頂部導覽列遮住 */
             margin-left: 240px;
             flex: 1;
             padding: 30px;
             box-sizing: border-box;
+            transition: margin-left 0.3s ease;
+        }
+
+        /* 側邊欄縮放狀態 */
+        body.sidebar-collapsed .sidebar {
+            transform: translateX(-240px);
+        }
+        body.sidebar-collapsed .main-wrapper {
+            margin-left: 0;
         }
 
         /* 系統大分頁 */
@@ -268,9 +299,14 @@
 </head>
 <body>
 
+<!-- 頂部導覽列 -->
+<header class="top-header">
+    <div class="header-toggle" onclick="toggleSidebar()">☰</div>
+    <div class="header-brand">投資管理系統</div>
+</header>
+
 <!-- 左側固定選單 -->
 <div class="sidebar">
-    <div class="sidebar-brand">投資管理系統</div>
     <ul class="sidebar-menu">
         <li class="sidebar-item" id="menu-init" onclick="switchMainSection('init')">⚙️ 初始股票設定</li>
         <li class="sidebar-item active" id="menu-ledger" onclick="switchMainSection('ledger')">📊 股市記帳工具</li>
@@ -703,6 +739,11 @@
         refreshAllViews();
         switchMainSection('ledger'); // 依照要求，預設顯示第二個分頁：股市記帳工具
     };
+
+    // 側邊欄切換函式
+    function toggleSidebar() {
+        document.body.classList.toggle('sidebar-collapsed');
+    }
 
     function loadDataFromStorage() {
         const storedDb = localStorage.getItem('my_stock_ledger_db');
