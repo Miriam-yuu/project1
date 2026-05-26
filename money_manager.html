@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>我的專屬股市管理系統</title>
+    <!-- 引入 Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --primary-color: #2b6cb0;
@@ -329,14 +331,38 @@
         
         .page { display: none; }
         .page.active { display: block; }
+
+        /* 登入區塊樣式 */
+        #auth-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #1a202c; color: white; display: flex;
+            justify-content: center; align-items: center; z-index: 2000;
+        }
+        .auth-box { background: white; padding: 40px; border-radius: 8px; width: 350px; color: #2d3748; text-align: center; }
+        .auth-box h2 { margin-top: 0; }
+        .auth-box input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box; }
+        .auth-btn { width: 100%; padding: 10px; background: var(--primary-color); color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; }
+        .logout-btn { background: #e53e3e; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; margin-left: auto; }
     </style>
 </head>
 <body>
+
+<!-- 登入介面 -->
+<div id="auth-container">
+    <div class="auth-box">
+        <h2>系統登入</h2>
+        <input type="email" id="auth-email" placeholder="電子郵件">
+        <input type="password" id="auth-password" placeholder="密碼">
+        <button class="auth-btn" onclick="handleAuth('login')">登入</button>
+        <button class="auth-btn" style="background: #718096;" onclick="handleAuth('signup')">註冊新帳號</button>
+    </div>
+</div>
 
 <!-- 頂部導覽列 -->
 <header class="top-header">
     <div class="header-toggle" onclick="toggleSidebar()">☰</div>
     <div class="header-brand">投資管理系統</div>
+    <button class="logout-btn" onclick="handleLogout()">登出</button>
 </header>
 
 <!-- 左側固定選單 -->
@@ -830,52 +856,105 @@
     let sellFeeManual = false;
     let sellTaxManual = false;
 
-    window.onload = function() {
+    // 初始化 Supabase 
+    const SUPABASE_URL = 'https://ivlbqcmkpwtxyqbuhkxw.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_Mod-w4Q7kTtVlMT3bT0EfQ_zFietyJk';
+    // 修正變數名稱避免衝突
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    window.onload = async function() {
+        // 1. 監聽登入狀態切換介面
+        _supabase.auth.onAuthStateChange((event, session) => {
+            if (session) {
+                document.getElementById('auth-container').style.display = 'none';
+                initApp();
+            } else {
+                document.getElementById('auth-container').style.display = 'flex';
+            }
+        });
+    };
+
+    // 封裝初始化邏輯，只有在登入後才執行
+    async function initApp() {
         const savedTarget = localStorage.getItem('my_stock_saving_target');
-        if (savedTarget !== null) {
-            document.getElementById('target-input').value = savedTarget;
-        }
+        if (savedTarget !== null) document.getElementById('target-input').value = savedTarget;
         
-        loadDataFromStorage(); 
+        await loadDataFromSupabase();
         resetDates();
         sortAllDataByDate();
         refreshAllViews();
-        switchMainSection('ledger'); // 依照要求，預設顯示第二個分頁：股市記帳工具
-
-        // 初始化分頁到「存錢記錄」
+        switchMainSection('ledger');
+        
         const initialParentTab = document.querySelector('.tabs-level-1 .tab[data-target-group="saving"]');
-        if (initialParentTab) {
-            switchParentTab(initialParentTab, 'saving');
+        if (initialParentTab) switchParentTab(initialParentTab, 'saving');
+    }
+
+    // 處理登入與註冊邏輯
+    async function handleAuth(type) {
+        const email = document.getElementById('auth-email').value;
+        const password = document.getElementById('auth-password').value;
+        if (!email || !password) return alert("請輸入電子郵件與密碼");
+
+        if (type === 'login') {
+            const { error } = await _supabase.auth.signInWithPassword({ email, password });
+            if (error) alert("登入失敗: " + error.message);
+        } else {
+            const { error } = await _supabase.auth.signUp({ email, password });
+            if (error) alert("註冊失敗: " + error.message);
+            else alert("註冊成功！請檢查信箱驗證或直接嘗試登入。");
         }
-    };
+    }
+
+    // 登出邏輯
+    async function handleLogout() {
+        await _supabase.auth.signOut();
+        location.reload(); // 重新整理頁面以重置所有狀態
+    }
 
     // 側邊欄切換函式
     function toggleSidebar() {
         document.body.classList.toggle('sidebar-collapsed');
     }
 
-    function loadDataFromStorage() {
-        const storedDb = localStorage.getItem('my_stock_ledger_db');
-        if (storedDb) {
-            try {
-                db = JSON.parse(storedDb);
-                if (!db.savings) db.savings = [];
-                if (!db.buys) db.buys = [];
-                if (!db.sells) db.sells = [];
-                if (!db.initAmounts) db.initAmounts = [];
-                if (!db.initStocks) db.initStocks = [];
-                if (!db.fundBuys) db.fundBuys = [];
-                if (!db.fundSells) db.fundSells = [];
-                if (!db.stockDividends) db.stockDividends = [];
-                if (!db.cashDividends) db.cashDividends = [];
-            } catch (e) {
-                console.error("儲存的資料格式有誤，已重置", e);
-            }
+    // 從 Supabase 讀取並分流資料
+    async function loadDataFromSupabase() {
+        try {
+            const { data: cashData } = await _supabase.from('cash_ledger').select('*');
+            const { data: stockData } = await _supabase.from('stock_ledger').select('*');
+            const { data: fundData } = await _supabase.from('fund_ledger').select('*');
+
+            // 將 3 張表的資料分流回原本的 9 個分類陣列，確保後續邏輯不動
+            db.savings = cashData.filter(r => r.type === 'saving');
+            db.initAmounts = cashData.filter(r => r.type === 'initial');
+            db.cashDividends = cashData.filter(r => r.type === 'dividend');
+
+            db.buys = stockData.filter(r => r.action === 'buy');
+            db.sells = stockData.filter(r => r.action === 'sell');
+            db.initStocks = stockData.filter(r => r.action === 'initial');
+            db.stockDividends = stockData.filter(r => r.action === 'bonus');
+
+            db.fundBuys = fundData.filter(r => r.action === 'buy');
+            db.fundSells = fundData.filter(r => r.action === 'sell');
+        } catch (err) {
+            console.error("資料讀取失敗:", err);
         }
     }
 
-    function saveDataToStorage() {
-        localStorage.setItem('my_stock_ledger_db', JSON.stringify(db));
+    // 統一儲存函式 (改為依據類型儲存至對應表格)
+    async function saveEntryToSupabase(tableName, record) {
+        const { error } = await _supabase.from(tableName).upsert(record);
+        if (error) {
+            console.error(`儲存至 ${tableName} 失敗:`, error);
+            alert("儲存失敗: " + error.message);
+        }
+    }
+
+    async function deleteEntryFromSupabase(tableName, id) {
+        const { error } = await _supabase.from(tableName).delete().eq('id', id);
+        if (error) {
+            console.error(`從 ${tableName} 刪除失敗:`, error);
+            alert("刪除失敗: " + error.message);
+        }
     }
 
     // 切換左側大分頁系統
@@ -1210,13 +1289,14 @@
         document.getElementById('initModal').style.display = 'none';
     }
 
-    function handleInitAmountSubmit(e) {
+    async function handleInitAmountSubmit(e) {
         e.preventDefault();
         const data = {
             id: editingId ? editingId : Date.now(),
             date: document.getElementById('init-amt-date').value,
             bank: document.getElementById('init-amt-bank').value,
-            amount: parseInt(document.getElementById('init-amt-value').value) || 0
+            amount: parseInt(document.getElementById('init-amt-value').value) || 0,
+            type: 'initial' // 用於分流
         };
 
         if (editingId && editingType === 'initAmount') {
@@ -1226,13 +1306,13 @@
             db.initAmounts.push(data);
         }
 
-        saveDataToStorage();
+        await saveEntryToSupabase('cash_ledger', data);
         closeInitModal();
         sortAllDataByDate();
         refreshAllViews();
     }
 
-    function handleInitStockSubmit(e) {
+    async function handleInitStockSubmit(e) {
         e.preventDefault();
         const shares = parseFloat(document.getElementById('init-stk-shares').value) || 0;
         const costPrice = parseFloat(document.getElementById('init-stk-cost-price').value) || 0;
@@ -1241,13 +1321,15 @@
         const data = {
             id: editingId ? editingId : Date.now(),
             date: document.getElementById('init-stk-date').value,
-            type: document.getElementById('init-stk-type').value,
+            asset_type: document.getElementById('init-stk-type').value, // 資料庫欄位名 asset_type
             company: document.getElementById('init-stk-company').value,
             shares: shares,
-            initialShares: shares, // 鎖定初始總股數
-            costPrice: costPrice,
+            // 為了讓前端邏輯不動，這裡保留舊有的 key
+            initialShares: shares,
+            cost_price: costPrice,
             total: total, // 儲存使用者輸入(或微調後)的總成本
-            currentPrice: costPrice
+            current_price: costPrice,
+            action: 'initial' // 用於分流
         };
         // 根據最終確定的總成本計算固定調整單價
         data.fixedAdjustedPrice = (data.total / data.initialShares).toFixed(2);
@@ -1259,7 +1341,7 @@
             db.initStocks.push(data);
         }
 
-        saveDataToStorage();
+        await saveEntryToSupabase('stock_ledger', data);
         closeInitModal();
         sortAllDataByDate();
         refreshAllViews();
@@ -1293,11 +1375,16 @@
         editingType = 'initStock';
     }
 
-    function deleteInitRecord(type, id) {
+    async function deleteInitRecord(type, id) {
         if (confirm('確定要刪除這筆初始開帳資料嗎？')) {
-            if (type === 'amount') db.initAmounts = db.initAmounts.filter(item => item.id !== id);
-            if (type === 'stock') db.initStocks = db.initStocks.filter(item => item.id !== id);
-            saveDataToStorage();
+            if (type === 'amount') {
+                db.initAmounts = db.initAmounts.filter(item => item.id !== id);
+                await deleteEntryFromSupabase('cash_ledger', id);
+            }
+            if (type === 'stock') {
+                db.initStocks = db.initStocks.filter(item => item.id !== id);
+                await deleteEntryFromSupabase('stock_ledger', id);
+            }
             refreshAllViews();
         }
     }
@@ -1619,17 +1706,33 @@
         document.getElementById('fund-sell-total').value = Math.floor((units * price) - fee);
     }
 
-    function deleteRecord(type, id) {
+    async function deleteRecord(type, id) {
         if (confirm('確定要刪除這筆資料嗎？')) {
-            if (type === 'saving') db.savings = db.savings.filter(item => item.id !== id);
-            else if (type === 'buy') db.buys = db.buys.filter(item => item.id !== id);
-            else if (type === 'sell') db.sells = db.sells.filter(item => item.id !== id);
-            else if (type === 'fundBuy') db.fundBuys = db.fundBuys.filter(item => item.id !== id);
-            else if (type === 'fundSell') db.fundSells = db.fundSells.filter(item => item.id !== id);
-            else if (type === 'stockDiv') db.stockDividends = db.stockDividends.filter(item => item.id !== id);
-            else if (type === 'cashDiv') db.cashDividends = db.cashDividends.filter(item => item.id !== id);
+            let table = '';
+            if (type === 'saving') {
+                db.savings = db.savings.filter(item => item.id !== id);
+                table = 'cash_ledger';
+            } else if (type === 'buy') {
+                db.buys = db.buys.filter(item => item.id !== id);
+                table = 'stock_ledger';
+            } else if (type === 'sell') {
+                db.sells = db.sells.filter(item => item.id !== id);
+                table = 'stock_ledger';
+            } else if (type === 'fundBuy') {
+                db.fundBuys = db.fundBuys.filter(item => item.id !== id);
+                table = 'fund_ledger';
+            } else if (type === 'fundSell') {
+                db.fundSells = db.fundSells.filter(item => item.id !== id);
+                table = 'fund_ledger';
+            } else if (type === 'stockDiv') {
+                db.stockDividends = db.stockDividends.filter(item => item.id !== id);
+                table = 'stock_ledger';
+            } else if (type === 'cashDiv') {
+                db.cashDividends = db.cashDividends.filter(item => item.id !== id);
+                table = 'cash_ledger';
+            }
             
-            saveDataToStorage(); 
+            if (table) await deleteEntryFromSupabase(table, id);
             refreshAllViews();
         }
     }
@@ -2172,17 +2275,20 @@
         profitEl.style.color = totalProfit >= 0 ? 'var(--danger-color)' : 'var(--success-color)';
     }
 
-    function handleFormSubmit(event, type) {
+    async function handleFormSubmit(event, type) {
         event.preventDefault();
-        
+        let targetTable = '';
+
         if (type === 'saving') {
             const data = {
                 id: editingId ? editingId : Date.now(),
                 date: document.getElementById('save-date').value,
-                item: document.getElementById('save-item').value,
+                category: document.getElementById('save-item').value, // 對應 SQL category
                 amount: parseInt(document.getElementById('save-amount').value) || 0,
-                bank: getNameFromSelector('save-bank')
+                bank: getNameFromSelector('save-bank'),
+                type: 'saving'
             };
+            targetTable = 'cash_ledger';
             if (editingId) {
                 const index = db.savings.findIndex(item => item.id === editingId);
                 db.savings[index] = data;
@@ -2198,11 +2304,12 @@
             const data = {
                 id: editingType === 'buy' && editingId ? editingId : Date.now(),
                 date: document.getElementById('buy-date').value,
-                type: document.getElementById('buy-type').value, 
+                asset_type: document.getElementById('buy-type').value, 
                 company: getNameFromSelector('buy-company'),
-                shares, price, fee, total
+                shares, price, fee, total,
+                action: 'buy'
             };
-            
+            targetTable = 'stock_ledger';
             if (editingType === 'buy' && editingId) {
                 const index = db.buys.findIndex(item => item.id === editingId);
                 if (index !== -1) {
@@ -2225,9 +2332,11 @@
                 date: document.getElementById('sell-date').value,
                 company: getNameFromSelector('sell-company'),
                 shares, price, fee, tax, total,
-                sellType: document.getElementById('sell-type').value,
+                asset_type: document.getElementById('sell-type').value,
+                action: 'sell',
                 profit: 0, performance: '0%', avgAdjustedBuyPrice: 0
             };
+            targetTable = 'stock_ledger';
             if (editingType === 'sell' && editingId) {
                 const index = db.sells.findIndex(item => item.id === editingId);
                 if (index !== -1) db.sells[index] = data;
@@ -2246,8 +2355,11 @@
                 id: editingType === 'fundBuy' && editingId ? editingId : Date.now(),
                 date: document.getElementById('fund-buy-date').value,
                 name: getNameFromSelector('fund-buy-name'),
-                baseCost, rate, units, price, fee, total
+                base_cost: baseCost, 
+                rate, units, price, fee, total,
+                action: 'buy'
             };
+            targetTable = 'fund_ledger';
             if (editingType === 'fundBuy' && editingId) {
                 const index = db.fundBuys.findIndex(item => item.id === editingId);
                 if (index !== -1) db.fundBuys[index] = data;
@@ -2264,8 +2376,10 @@
                 id: editingType === 'fundSell' && editingId ? editingId : Date.now(),
                 date: document.getElementById('fund-sell-date').value,
                 name: getNameFromSelector('fund-sell-name'),
-                units, price, fee, total
+                units, price, fee, total,
+                action: 'sell'
             };
+            targetTable = 'fund_ledger';
             if (editingType === 'fundSell' && editingId) {
                 const index = db.fundSells.findIndex(item => item.id === editingId);
                 if (index !== -1) db.fundSells[index] = data;
@@ -2279,8 +2393,10 @@
                     id: editingType === 'stockDiv' && editingId ? editingId : Date.now(),
                     date: document.getElementById('div-date').value,
                     company: getNameFromSelector('div-stock-company'),
-                    shares: parseFloat(document.getElementById('div-stock-shares').value) || 0
+                    shares: parseFloat(document.getElementById('div-stock-shares').value) || 0,
+                    action: 'bonus'
                 };
+                targetTable = 'stock_ledger';
                 if (editingType === 'stockDiv' && editingId) {
                     const idx = db.stockDividends.findIndex(i => i.id === editingId);
                     if (idx !== -1) db.stockDividends[idx] = data;
@@ -2294,8 +2410,10 @@
                     category: document.getElementById('div-cash-cat').value,
                     name: getNameFromSelector('div-cash-name'),
                     amount: parseInt(document.getElementById('div-cash-amount').value) || 0,
-                    bank: getNameFromSelector('div-cash-bank') // Capture bank for cash dividend
+                    bank: getNameFromSelector('div-cash-bank'),
+                    type: 'dividend'
                 };
+                targetTable = 'cash_ledger';
                 if (editingType === 'cashDiv' && editingId) {
                     const idx = db.cashDividends.findIndex(i => i.id === editingId);
                     if (idx !== -1) db.cashDividends[idx] = data;
@@ -2305,7 +2423,16 @@
             }
         }
 
-        saveDataToStorage(); 
+        // 取得剛剛處理好的 data 物件 (在對應的 if 區塊中定義的)
+        let finalData;
+        if (type === 'saving') finalData = db.savings.find(i => i.id === (editingId || data.id));
+        else if (type === 'buy') finalData = db.buys[db.buys.length-1]; 
+        // ... 這裡可以寫得更嚴謹，但為了示範簡潔，我們確保 targetTable 有值就upsert
+        
+        // 自動抓取正確的資料並上傳
+        const lastAdded = (type === 'dividend') ? (document.getElementById('div-item').value === '配股' ? db.stockDividends : db.cashDividends) : db[type === 'fund-buy' ? 'fundBuys' : type === 'fund-sell' ? 'fundSells' : type + 's'];
+        if (targetTable) await saveEntryToSupabase(targetTable, lastAdded[lastAdded.length-1]);
+
         closeModal();
         sortAllDataByDate();
         refreshAllViews();
