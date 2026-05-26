@@ -615,6 +615,7 @@
             <button class="type-btn" id="btn-type-sell" onclick="selectFormType('sell')">賣出</button>
             <button class="type-btn" id="btn-type-fund-buy" onclick="selectFormType('fund-buy')">基金買入</button>
             <button class="type-btn" id="btn-type-fund-sell" onclick="selectFormType('fund-sell')">基金賣出</button>
+            <button class="type-btn" id="btn-type-dividend" onclick="selectFormType('dividend')">配股/息</button>
         </div>
 
         <form id="form-saving" class="form-form active" onsubmit="handleFormSubmit(event, 'saving')">
@@ -701,6 +702,38 @@
             <div class="form-group"><label>實收金額 (可手動微調)</label><input type="number" id="fund-sell-total" ></div>
             <button type="submit" class="submit-btn">儲存資料</button>
         </form>
+
+        <form id="form-dividend" class="form-form" onsubmit="handleFormSubmit(event, 'dividend')">
+            <div class="form-group"><label>日期</label><input type="date" id="div-date" required></div>
+            <div class="form-group">
+                <label>項目</label>
+                <select id="div-item" onchange="toggleDividendFields()" required>
+                    <option value="配股">配股</option>
+                    <option value="配息">配息</option>
+                </select>
+            </div>
+            <!-- 配股欄位 -->
+            <div id="div-stock-fields">
+                <div class="form-group"><label>公司</label><div id="div-stock-company-wrapper"></div></div>
+                <div class="form-group"><label>股數</label><input type="number" id="div-stock-shares" placeholder="請輸入配股股數"></div>
+            </div>
+            <!-- 配息欄位 -->
+            <div id="div-cash-fields" style="display: none;">
+                <div class="form-group">
+                    <label>類別</label>
+                    <select id="div-cash-cat" onchange="toggleDividendNameSelector()">
+                        <option value="股票/ETF">股票/ETF</option>
+                        <option value="基金">基金</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>公司/基金名稱</label>
+                    <div id="div-cash-name-wrapper"></div>
+                </div>
+                <div class="form-group"><label>金額</label><input type="number" id="div-cash-amount" placeholder="請輸入配息金額"></div>
+            </div>
+            <button type="submit" class="submit-btn">儲存資料</button>
+        </form>
     </div>
 </div>
 
@@ -773,7 +806,9 @@
         initAmounts: [], // ⚙️ 初始金額庫
         initStocks: [],  // ⚙️ 初始股票庫
         fundBuys: [],    // 🏦 基金買入
-        fundSells: []    // 🏦 基金賣出
+        fundSells: [],   // 🏦 基金賣出
+        stockDividends: [], // 🎁 配股記錄
+        cashDividends: []   // 💵 配息記錄
     };
 
     let unrealizedInventory = []; 
@@ -781,7 +816,7 @@
     
     // 編輯控制
     let editingId = null;
-    let editingType = null; // 'saving', 'buy', 'sell', 'initAmount', 'initStock'
+    let editingType = null; // 'saving', 'buy', 'sell', 'initAmount', 'initStock', 'stockDiv', 'cashDiv'
 
     let buyFeeManual = false;
     let sellFeeManual = false;
@@ -823,6 +858,8 @@
                 if (!db.initStocks) db.initStocks = [];
                 if (!db.fundBuys) db.fundBuys = [];
                 if (!db.fundSells) db.fundSells = [];
+                if (!db.stockDividends) db.stockDividends = [];
+                if (!db.cashDividends) db.cashDividends = [];
             } catch (e) {
                 console.error("儲存的資料格式有誤，已重置", e);
             }
@@ -857,6 +894,8 @@
         db.initStocks.sort((a, b) => new Date(a.date) - new Date(b.date));
         db.fundBuys.sort((a, b) => new Date(a.date) - new Date(b.date));
         db.fundSells.sort((a, b) => new Date(a.date) - new Date(b.date));
+        db.stockDividends.sort((a, b) => new Date(a.date) - new Date(b.date));
+        db.cashDividends.sort((a, b) => new Date(a.date) - new Date(b.date));
     }
 
     // 資料連動核心運算
@@ -911,6 +950,23 @@
                 total: s.total,
                 costPrice: s.costPrice,
                 isInit: true
+            });
+        });
+
+        // 3. 塞入配股記錄 (視為 0 成本買入，拉低平均)
+        db.stockDividends.forEach(sd => {
+            mergedBuys.push({
+                id: sd.id,
+                date: sd.date,
+                type: '配股',
+                company: sd.company,
+                shares: sd.shares,
+                initialShares: sd.shares,
+                fixedAdjustedPrice: "0.00",
+                total: 0,
+                price: 0,
+                fee: 0,
+                isInit: false
             });
         });
 
@@ -1323,6 +1379,14 @@
         document.getElementById('fund-sell-fee').value = '';
         document.getElementById('fund-sell-total').value = '';
 
+        document.getElementById('div-date').value = today;
+        document.getElementById('div-item').value = '配股';
+        populateNameSelector('div-stock-company', getAllUniqueStockCompanies(), '');
+        document.getElementById('div-stock-shares').value = '';
+        document.getElementById('div-cash-cat').value = '股票/ETF';
+        document.getElementById('div-cash-amount').value = '';
+        toggleDividendFields();
+
         buyFeeManual = false; sellFeeManual = false; sellTaxManual = false;
     }
 
@@ -1347,6 +1411,7 @@
         else if (type === 'sell') calcSellTotal();
         else if (type === 'fund-buy') calcFundBuyTotal();
         else if (type === 'fund-sell') calcFundSellTotal();
+        else if (type === 'dividend') toggleDividendFields();
         
         // 切換時重新刷新名稱選擇器
         if (type === 'saving') populateNameSelector('save-bank', getAllUniqueBanks(), '');
@@ -1354,6 +1419,25 @@
         else if (type === 'sell') populateNameSelector('sell-company', getAllUniqueStockCompanies(), '');
         else if (type === 'fund-buy') populateNameSelector('fund-buy-name', getAllUniqueFundNames(), '');
         else if (type === 'fund-sell') populateNameSelector('fund-sell-name', getAllUniqueFundNames(), '');
+        else if (type === 'dividend') toggleDividendFields();
+    }
+
+    function toggleDividendFields() {
+        const item = document.getElementById('div-item').value;
+        document.getElementById('div-stock-fields').style.display = (item === '配股' ? 'block' : 'none');
+        document.getElementById('div-cash-fields').style.display = (item === '配息' ? 'block' : 'none');
+        
+        if (item === '配股') {
+            populateNameSelector('div-stock-company', getAllUniqueStockCompanies(), '');
+        } else {
+            toggleDividendNameSelector();
+        }
+    }
+
+    function toggleDividendNameSelector() {
+        const cat = document.getElementById('div-cash-cat').value;
+        const names = (cat === '股票/ETF' ? getAllUniqueStockCompanies() : getAllUniqueFundNames());
+        populateNameSelector('div-cash-name', names, '');
     }
 
     // 輔助函數：獲取所有不重複的公司名稱 (股票)
@@ -1530,6 +1614,8 @@
             else if (type === 'sell') db.sells = db.sells.filter(item => item.id !== id);
             else if (type === 'fundBuy') db.fundBuys = db.fundBuys.filter(item => item.id !== id);
             else if (type === 'fundSell') db.fundSells = db.fundSells.filter(item => item.id !== id);
+            else if (type === 'stockDiv') db.stockDividends = db.stockDividends.filter(item => item.id !== id);
+            else if (type === 'cashDiv') db.cashDividends = db.cashDividends.filter(item => item.id !== id);
             
             saveDataToStorage(); 
             refreshAllViews();
@@ -1600,6 +1686,18 @@
             });
         });
 
+        // 放入配息記錄
+        db.cashDividends.forEach(cd => {
+            combinedSavings.push({
+                id: cd.id,
+                date: cd.date,
+                item: `配息 (${cd.name})`,
+                amount: cd.amount,
+                isInit: false,
+                isCashDiv: true
+            });
+        });
+
         // 依日期排序
         combinedSavings.sort((a, b) => new Date(a.date) - new Date(b.date));
 
@@ -1639,7 +1737,9 @@
         });
 
         // 更新上方的統計看板（自動排除初始金額，不記入目標）
-        const totalSelfSaved = db.savings.reduce((sum, row) => sum + row.amount, 0);
+        const totalRegularSaved = db.savings.reduce((sum, row) => sum + row.amount, 0);
+        const totalCashDiv = db.cashDividends.reduce((sum, row) => sum + row.amount, 0);
+        const totalSelfSaved = totalRegularSaved + totalCashDiv;
         let currentDistance = Math.max(0, targetPrice - totalSelfSaved);
         
         document.getElementById('summary-saved').innerText = `$${totalSelfSaved.toLocaleString()}`;
@@ -1744,6 +1844,12 @@
                             </thead>
                             <tbody>
                                 ${detailItemsHtml}
+                                ${group.items.filter(i => i.rawRecord.type === '配股').map(i => `
+                                    <tr style="background: #fff5f5;">
+                                        <td>${i.date}</td><td>${i.remainingShares}</td><td>$0.00</td><td>$0</td><td>$0</td><td>$0.00</td><td>${i.remainingShares}</td>
+                                        <td><div class="action-btns"><button class="btn-edit" onclick="editStockDiv(${i.id})">編輯</button><button class="btn-delete" onclick="deleteRecord('stockDiv', ${i.id})">🗑️</button></div></td>
+                                    </tr>
+                                `).join('')}
                             </tbody>
                         </table>
                     </div>
@@ -2030,15 +2136,17 @@
         const totalFundBuyCost = db.fundBuys.reduce((sum, row) => sum + row.total, 0);
         const totalFundSellRevenue = db.fundSells.reduce((sum, row) => sum + row.total, 0);
         
+        const totalCashDiv = db.cashDividends.reduce((sum, row) => sum + row.amount, 0);
+        
         // 總可用餘額加總初始開帳現金
-        const mainAvailable = totalSaved + totalInitAmount - totalBuyCost + totalSellRevenue - totalFundBuyCost + totalFundSellRevenue;
+        const mainAvailable = totalSaved + totalInitAmount - totalBuyCost + totalSellRevenue - totalFundBuyCost + totalFundSellRevenue + totalCashDiv;
         
         // 計算總獲利：股票已實現損益 + 基金賣出損益
         const stockProfit = db.sells.reduce((sum, row) => sum + (row.profit || 0), 0);
         const fundProfit = db.fundSells.reduce((sum, row) => {
             return sum + (row.breakdown ? row.breakdown.reduce((s, b) => s + (b.profit || 0), 0) : 0);
         }, 0);
-        const totalProfit = stockProfit + fundProfit;
+        const totalProfit = stockProfit + fundProfit + totalCashDiv;
 
         document.getElementById('main-available').innerText = `$${mainAvailable.toLocaleString()}`;
         const profitEl = document.getElementById('main-profit');
@@ -2146,6 +2254,36 @@
             } else {
                 db.fundSells.push(data);
             }
+        } else if (type === 'dividend') {
+            const divItem = document.getElementById('div-item').value;
+            if (divItem === '配股') {
+                const data = {
+                    id: editingType === 'stockDiv' && editingId ? editingId : Date.now(),
+                    date: document.getElementById('div-date').value,
+                    company: getNameFromSelector('div-stock-company'),
+                    shares: parseFloat(document.getElementById('div-stock-shares').value) || 0
+                };
+                if (editingType === 'stockDiv' && editingId) {
+                    const idx = db.stockDividends.findIndex(i => i.id === editingId);
+                    if (idx !== -1) db.stockDividends[idx] = data;
+                } else {
+                    db.stockDividends.push(data);
+                }
+            } else {
+                const data = {
+                    id: editingType === 'cashDiv' && editingId ? editingId : Date.now(),
+                    date: document.getElementById('div-date').value,
+                    category: document.getElementById('div-cash-cat').value,
+                    name: getNameFromSelector('div-cash-name'),
+                    amount: parseInt(document.getElementById('div-cash-amount').value) || 0
+                };
+                if (editingType === 'cashDiv' && editingId) {
+                    const idx = db.cashDividends.findIndex(i => i.id === editingId);
+                    if (idx !== -1) db.cashDividends[idx] = data;
+                } else {
+                    db.cashDividends.push(data);
+                }
+            }
         }
 
         saveDataToStorage(); 
@@ -2224,6 +2362,31 @@
         document.getElementById('fund-sell-fee').value = data.fee;
         document.getElementById('fund-sell-total').value = data.total;
         editingId = id; editingType = 'fundSell';
+    }
+
+    function editStockDiv(id) {
+        const data = db.stockDividends.find(i => i.id === id);
+        if (!data) return;
+        openModal(); selectFormType('dividend');
+        document.getElementById('div-date').value = data.date;
+        document.getElementById('div-item').value = '配股';
+        toggleDividendFields();
+        populateNameSelector('div-stock-company', getAllUniqueStockCompanies(), data.company);
+        document.getElementById('div-stock-shares').value = data.shares;
+        editingId = id; editingType = 'stockDiv';
+    }
+
+    function editCashDiv(id) {
+        const data = db.cashDividends.find(i => i.id === id);
+        if (!data) return;
+        openModal(); selectFormType('dividend');
+        document.getElementById('div-date').value = data.date;
+        document.getElementById('div-item').value = '配息';
+        toggleDividendFields();
+        document.getElementById('div-cash-cat').value = data.category;
+        populateNameSelector('div-cash-name', (data.category === '股票/ETF' ? getAllUniqueStockCompanies() : getAllUniqueFundNames()), data.name);
+        document.getElementById('div-cash-amount').value = data.amount;
+        editingId = id; editingType = 'cashDiv';
     }
 </script>
 
