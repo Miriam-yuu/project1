@@ -35,7 +35,7 @@
             flex-direction: column;
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
             position: fixed;
-            top: 60px; /* 留出頂部空間 */
+            top: 60px; /* 留出頂部導覽列空間 */
             bottom: 0; left: 0;
             z-index: 100;
             transition: transform 0.3s ease;
@@ -100,7 +100,7 @@
 
         /* 右側主內容區 */
         .main-wrapper {
-            margin-top: 60px; /* 這裡實現「下移」，確保內容不被導覽列遮住 */
+            margin-top: 60px; /* 確保內容不被頂部導覽列遮住 */
             margin-left: 240px;
             flex: 1;
             padding: 30px;
@@ -108,7 +108,7 @@
             transition: margin-left 0.3s ease;
         }
 
-        /* 縮放狀態的樣式控制 */
+        /* 側邊欄縮放狀態 */
         body.sidebar-collapsed .sidebar {
             transform: translateX(-240px);
         }
@@ -157,7 +157,6 @@
             transition: transform 0.2s;
             flex-shrink: 0;
             align-self: center;
-            margin-left: 10px;
         }
         .add-btn:hover { transform: scale(1.1); }
 
@@ -192,15 +191,14 @@
         /* 標籤頁切換 */
         .tabs {
             display: flex;
-            flex-wrap: wrap;
             flex-wrap: nowrap;
             overflow-x: auto;
             border-bottom: 2px solid #e2e8f0;
             margin-bottom: 20px;
-            scrollbar-width: none; /* Firefox 隱藏捲軸 */
-            -ms-overflow-style: none; /* IE/Edge 隱藏捲軸 */
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE/Edge */
         }
-        .tabs::-webkit-scrollbar { display: none; } /* Chrome/Safari 隱藏捲軸 */
+        .tabs::-webkit-scrollbar { display: none; } /* Chrome/Safari */
 
         .tab {
             padding: 10px 20px;
@@ -209,7 +207,7 @@
             margin-bottom: -2px;
             font-weight: bold;
             color: #718096;
-            flex-shrink: 0; /* 防止標籤被壓縮變形 */
+            flex-shrink: 0;
         }
         .tab.active {
             color: var(--primary-color);
@@ -319,12 +317,12 @@
     <!-- ================= 分頁一：初始股票設定 ================= -->
     <div id="section-init" class="app-section">
         <div class="container">
-            <h2 style="margin-top: 0; margin-bottom: 5px;">⚙️ 帳戶開帳與初始股票設定</h2>
-            <p style="color: #718096; margin-top: 0; font-size: 14px;">（提示：從長輩接手的既有資金與股票可在此輸入，金額不會記入「股市記帳工具」的存錢目標中）</p>
+            <h2 style="margin-top: 0; margin-bottom: 5px;">⚙️ 帳戶初始資金與股票設定</h2>
+            <p style="color: #718096; margin-top: 0; font-size: 14px;">（提示：存錢目標開始前的既有資金與股票可在此輸入，金額不會記入「股市記帳工具」的存錢目標中）</p>
             
             <!-- 上半張表：原始金額設定 -->
             <div class="section-header">
-                <h3>💰 1. 原始金額設定 (開帳現金)</h3>
+                <h3>💰 1. 原始資金設定 (帳戶既有現金)</h3>
                 <button class="section-inline-btn" onclick="openInitModal('amount')">+ 新增原始金額</button>
             </div>
             <table>
@@ -341,7 +339,7 @@
 
             <!-- 下半張表：初始未實現損益 -->
             <div class="section-header">
-                <h3>📈 2. 未實現損益設定 (接手時既有持股)</h3>
+                <h3>📈 2. 未實現損益設定 (帳戶既有持股)</h3>
                 <button class="section-inline-btn" onclick="openInitModal('stock')">+ 新增既有持股</button>
             </div>
             <table>
@@ -364,18 +362,16 @@
     <!-- ================= 分頁二：股市記帳工具 (預設顯示) ================= -->
     <div id="section-ledger" class="app-section active">
         <div class="container">
-            <h2 style="margin-top: 0; margin-bottom: 20px;">📊 股市記帳工具</h2>
-
             <div class="main-summary">
                 <div class="summary-card">
-                    <h3>總可用金額 (含初始現金)</h3>
+                    <h3>總可用金額 (含初始資金)</h3>
                     <p id="main-available">$0</p>
                 </div>
                 <div class="summary-card">
                     <h3>賣出獲利</h3>
                     <p id="main-profit" style="color: var(--success-color);">$0</p>
                 </div>
-                <button class="add-btn" title="新增記帳資料" onclick="openModal()">+</button>
+                <button class="add-btn" title="新增資料" onclick="openModal()">+</button>
             </div>
 
             <div class="tabs">
@@ -396,7 +392,7 @@
                         <input type="number" id="target-input" value="1000000" oninput="handleTargetInput()">
                     </div>
                     <div>
-                        <label>自己已存入</label>
+                        <label>已存入</label>
                         <p id="summary-saved" style="margin:5px 0; font-size:18px; font-weight:bold;">$0</p>
                     </div>
                     <div>
@@ -415,7 +411,7 @@
                                     <option value="全部">全部</option>
                                     <option value="現金">現金</option>
                                     <option value="股利">股利</option>
-                                    <option value="初始金額">⚙️ 初始金額</option>
+                                    <option value="初始資金">⚙️ 初始資金</option>
                                 </select>
                             </th>
                             <th>金額</th>
@@ -435,13 +431,11 @@
                     <thead>
                         <tr>
                             <th>性質</th>
-                            <th>
-                                公司 <select id="unrealized-company-filter" class="header-filter" onchange="renderUnrealizedTable()"></select>
-                            </th>
-                            <th>剩餘股數</th>
+                            <th>公司</th>
+                            <th>股數</th>
                             <th style="color: var(--primary-color);">調整單價</th>
                             <th>明細</th>
-                            <th>剩餘成本</th>
+                            <th>總成本</th>
                             <th>操作</th>
                         </tr>
                     </thead>
@@ -462,7 +456,7 @@
                             <th>成交價</th>
                             <th>手續費</th>
                             <th>證交稅</th>
-                            <th>實拿金額</th>
+                            <th>實收金額</th>
                             <th>買入調整成交價</th>
                             <th>損益</th>
                             <th>績效</th>
@@ -479,6 +473,7 @@
                     <thead>
                         <tr>
                             <th>日期</th>
+                            <th>性質 <select id="transactions-nature-filter" class="header-filter" onchange="renderTransactionTable()"></select></th>
                             <th>項目</th>
                             <th>
                                 公司 <select id="transactions-company-filter" class="header-filter" onchange="renderTransactionTable()"></select>
@@ -521,7 +516,7 @@
                             <th>單位數</th>
                             <th>賣出淨值</th>
                             <th>手續費</th>
-                            <th>實拿金額</th>
+                            <th>實收金額</th>
                             <th>買入淨值</th>
                             <th>損益</th>
                             <th>績效</th>
@@ -539,7 +534,7 @@
                         <tr>
                             <th>日期</th>
                             <th>項目</th>
-                            <th>基金名稱</th>
+                            <th>基金名稱 <select id="fund-transactions-name-filter" class="header-filter" onchange="renderFundTransactionTable()"></select></th>
                             <th>單位數</th>
                             <th>淨值</th>
                             <th>手續費</th>
@@ -558,7 +553,7 @@
 <div class="modal" id="addModal">
     <div class="modal-content">
         <div class="modal-header">
-            <h2>新增記帳資料</h2>
+            <h2>新增資料</h2>
             <button class="close-btn" onclick="closeModal()">&times;</button>
         </div>
 
@@ -591,7 +586,6 @@
                 <select id="save-bank">
                     <option value="">-- 請選擇 --</option>
                     <option value="新光">新光</option>
-                    <option value="巨亨">巨亨</option>
                 </select>
             </div>
             <button type="submit" class="submit-btn">儲存資料</button>
@@ -609,7 +603,7 @@
                 <label class="inline-checkbox"><input type="checkbox" id="buy-regular" onchange="handleBuyRegularToggle()"> 定期定額</label>
                 <input type="number" id="buy-fee" oninput="handleBuyFeeInput()" required>
             </div>
-            <div class="form-group"><label>總成本</label><input type="number" id="buy-total" readonly></div>
+            <div class="form-group"><label>總成本 (可手動微調)</label><input type="number" id="buy-total"></div>
             <button type="submit" class="submit-btn">儲存資料</button>
         </form>
 
@@ -621,7 +615,7 @@
             <div class="form-group"><label>成交價</label><input type="number" step="0.01" id="sell-price" oninput="calcSellTotal()" placeholder="0.00" required></div>
             <div class="form-group"><label>手續費</label><input type="number" id="sell-fee" oninput="handleSellFeeInput()" required></div>
             <div class="form-group"><label>證交稅</label><input type="number" id="sell-tax" oninput="handleSellTaxInput()" required></div>
-            <div class="form-group"><label>實拿金額</label><input type="number" id="sell-total" readonly></div>
+            <div class="form-group"><label>實收金額 (可手動微調)</label><input type="number" id="sell-total"></div>
             <button type="submit" class="submit-btn">儲存資料</button>
         </form>
 
@@ -929,8 +923,12 @@
                     if (needed <= 0) break;
                 }
             }
+            
+            // 如果庫存不足，剩餘部分顯示為無成本對應
             if (needed > 0) {
-                sell.breakdown.push({ units: needed, buyPrice: 0, fee: 0, total: 0, profit: 0, performance: 'N/A' });
+                sell.breakdown.push({
+                    units: needed, buyPrice: 0, fee: 0, total: 0, profit: 0, performance: 'N/A'
+                });
             }
         });
         // ------------------------------
@@ -1223,7 +1221,6 @@
         document.getElementById('fund-buy-base-cost').value = '';
         document.getElementById('fund-buy-units').value = '';
         document.getElementById('fund-buy-price').value = '';
-        document.getElementById('fund-buy-fee').value = '';
         document.getElementById('fund-buy-total').value = '';
 
         document.getElementById('fund-sell-date').value = today;
@@ -1317,10 +1314,16 @@
     }
 
     function calcFundBuyTotal() {
-        const units = parseFloat(document.getElementById('fund-buy-units').value) || 0;
+        const cost = parseFloat(document.getElementById('fund-buy-base-cost').value) || 0;
         const price = parseFloat(document.getElementById('fund-buy-price').value) || 0;
         const fee = parseFloat(document.getElementById('fund-buy-fee').value) || 0;
-        document.getElementById('fund-buy-total').value = Math.floor((units * price) + fee);
+        
+        document.getElementById('fund-buy-total').value = Math.floor(cost + fee);
+        if (price > 0) {
+            document.getElementById('fund-buy-units').value = (cost / price).toFixed(4);
+        } else {
+            document.getElementById('fund-buy-units').value = '';
+        }
     }
 
     function calcFundSellTotal() {
@@ -1355,6 +1358,20 @@
         document.getElementById('sell-shares').value = shares;
         document.getElementById('sell-price').value = adjustedPrice; 
         calcSellTotal();
+    }
+
+    function quickFundSell(name, units, avgPrice, totalCost) {
+        switchMainSection('ledger');
+        switchTab('fund-buy');
+        document.getElementById('addModal').style.display = 'flex';
+        resetDates();
+        editingId = null; editingType = null;
+        selectFormType('fund-sell');
+        document.getElementById('fund-sell-name').value = name;
+        document.getElementById('fund-sell-units').value = units;
+        document.getElementById('fund-sell-price').value = avgPrice; 
+        document.getElementById('fund-sell-buy-cost').value = totalCost;
+        calcFundSellTotal();
     }
 
     // 渲染存錢記錄 (整合並扣除初始開帳金額)
@@ -1545,7 +1562,9 @@
         populateFilterDropdown('realized-company-filter', getUniqueCompanies(db.sells), currentCompanyFilter);
 
         tbody.innerHTML = '';
-        const filteredSells = db.sells.filter(row => currentCompanyFilter === '全部' || row.company === currentCompanyFilter);
+        // 預設順序改為新增資料的時間順序 (按 id 排序)
+        const filteredSells = db.sells.filter(row => currentCompanyFilter === '全部' || row.company === currentCompanyFilter)
+                                      .sort((a, b) => a.id - b.id);
 
         filteredSells.forEach((row) => {
             const tr = document.createElement('tr');
@@ -1578,24 +1597,37 @@
         const tbody = document.getElementById('transaction-table-body');
         const companyFilter = document.getElementById('transactions-company-filter');
         const currentCompanyFilter = companyFilter ? companyFilter.value : '全部';
+        
+        const natureFilter = document.getElementById('transactions-nature-filter');
+        const currentNatureFilter = natureFilter ? natureFilter.value : '全部';
 
         const rows = [
-            ...db.buys.map(row => ({ ...row, item: '買入', type: 'buy', tax: 0, amount: -(row.total || 0) })),
-            ...db.sells.map(row => ({ ...row, item: '賣出', type: 'sell', amount: row.total || 0 }))
+            ...db.buys.map(row => ({ ...row, displayNature: row.type || '個股', displayItem: '買入', actionType: 'buy', tax: 0, amount: -(row.total || 0) })),
+            ...db.sells.map(row => ({ ...row, displayNature: row.sellType || '個股', displayItem: '賣出', actionType: 'sell', amount: row.total || 0 }))
         ];
-        rows.sort((a, b) => new Date(a.date) - new Date(b.date));
+        // 預設順序改為新增資料的時間順序 (按 id 排序)
+        rows.sort((a, b) => a.id - b.id);
 
         populateFilterDropdown('transactions-company-filter', getUniqueCompanies(rows), currentCompanyFilter);
 
+        const natures = new Set(['全部']);
+        rows.forEach(r => natures.add(r.displayNature));
+        const naturesArray = Array.from(natures).filter(n => n !== '全部').sort();
+        populateFilterDropdown('transactions-nature-filter', ['全部', ...naturesArray], currentNatureFilter);
+
         tbody.innerHTML = '';
-        const filteredTransactions = rows.filter(row => currentCompanyFilter === '全部' || row.company === currentCompanyFilter);
+        const filteredTransactions = rows.filter(row => 
+            (currentCompanyFilter === '全部' || row.company === currentCompanyFilter) &&
+            (currentNatureFilter === '全部' || row.displayNature === currentNatureFilter)
+        );
 
         filteredTransactions.forEach((row) => {
             const tr = document.createElement('tr');
-            const editAction = row.type === 'buy' ? `editBuy(${row.id})` : `editSell(${row.id})`;
+            const editAction = row.actionType === 'buy' ? `editBuy(${row.id})` : `editSell(${row.id})`;
             tr.innerHTML = `
                 <td>${row.date}</td>
-                <td>${row.item}</td>
+                <td>${row.displayNature}</td>
+                <td>${row.displayItem}</td>
                 <td>${row.company || ''}</td>
                 <td>${(row.initialShares || row.shares || 0).toLocaleString()}</td>
                 <td>$${(row.price || 0).toLocaleString()}</td>
@@ -1605,7 +1637,7 @@
                 <td>
                     <div class="action-btns">
                         <button class="btn-edit" onclick="${editAction}">編輯</button>
-                        <button class="btn-delete" onclick="deleteRecord('${row.type}', ${row.id})">🗑️</button>
+                        <button class="btn-delete" onclick="deleteRecord('${row.actionType}', ${row.id})">🗑️</button>
                     </div>
                 </td>
             `;
@@ -1617,10 +1649,16 @@
         const tbody = document.getElementById('fund-buy-table-body');
         tbody.innerHTML = '';
 
+        // 按基金名稱進行分組
         const groups = {};
         db.fundBuys.forEach(row => {
             if (!groups[row.name]) {
-                groups[row.name] = { name: row.name, totalUnits: 0, totalCost: 0, items: [] };
+                groups[row.name] = {
+                    name: row.name,
+                    totalUnits: 0,
+                    totalCost: 0,
+                    items: []
+                };
             }
             groups[row.name].totalUnits += row.units;
             groups[row.name].totalCost += row.total;
@@ -1628,30 +1666,41 @@
         });
 
         const sortedNames = Object.keys(groups).sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+
         sortedNames.forEach(name => {
             const group = groups[name];
-            const avgPrice = group.totalUnits > 0 ? (group.totalCost / group.totalUnits).toFixed(4) : "0.0000";
-            const groupId = `fund-mgr-group-${name.replace(/[^a-zA-Z0-9\u4E00-\u9FFF]/g, '-')}`;
+            // 只計算尚有庫存的單位與成本
+            const currentRemainingUnits = group.items.reduce((sum, item) => sum + (item.remainingUnits || 0), 0);
+            const currentRemainingCost = group.items.reduce((sum, item) => sum + (item.remainingUnits > 0 ? (item.remainingUnits * item.adjustedBuyPrice) : 0), 0);
+            
+            if (currentRemainingUnits <= 0) return; // 若該基金已無庫存，則不顯示外層
+
+            const avgPrice = (currentRemainingCost / currentRemainingUnits).toFixed(4);
+            const groupId = `fund-group-${name.replace(/[^a-zA-Z0-9\u4E00-\u9FFF]/g, '-')}`;
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td style="font-weight: bold; color: var(--primary-color);">${group.name}</td>
-                <td>${group.totalUnits.toLocaleString(undefined, {minimumFractionDigits: 4})}</td>
-                <td>$${group.totalCost.toLocaleString()}</td>
+                <td>${currentRemainingUnits.toLocaleString(undefined, {minimumFractionDigits: 4})}</td>
+                <td>$${Math.round(currentRemainingCost).toLocaleString()}</td>
                 <td><button class="btn-detail" onclick="toggleDetailRow('${groupId}')">明細 🔍</button></td>
                 <td>
                     <div class="action-btns">
-                        <button class="btn-sell-action" onclick="quickFundSell('${group.name}', ${group.totalUnits}, '${avgPrice}', ${group.totalCost})">賣出</button>
+                        <button class="btn-sell-action" onclick="quickFundSell('${group.name}', ${currentRemainingUnits}, '${avgPrice}', ${Math.round(currentRemainingCost)})">賣出</button>
                     </div>
                 </td>
             `;
             tbody.appendChild(tr);
 
+            // 建立摺疊明細列
             const detailTr = document.createElement('tr');
             detailTr.id = `detail-${groupId}`;
             detailTr.className = 'detail-row';
+            
             let detailItemsHtml = '';
             group.items.forEach(item => {
+                if ((item.remainingUnits || 0) <= 0) return; // 若該批次剩餘 0 單位，不顯示明細記錄
+
                 detailItemsHtml += `
                     <tr>
                         <td>${item.date}</td>
@@ -1666,17 +1715,33 @@
                                 <button class="btn-delete" onclick="deleteRecord('fundBuy', ${item.id})">🗑️</button>
                             </div>
                         </td>
-                    </tr>`;
+                    </tr>
+                `;
             });
+
             detailTr.innerHTML = `
                 <td colspan="5">
                     <div class="detail-container">
+                        <h4 style="margin: 0 0 10px 0; color: var(--primary-color);">【${group.name}】買入明細：</h4>
                         <table class="detail-table">
-                            <thead><tr><th>日期</th><th>單位數</th><th>淨值</th><th>手續費</th><th>總成本</th><th>剩餘單位數</th><th>操作</th></tr></thead>
-                            <tbody>${detailItemsHtml}</tbody>
+                            <thead>
+                                <tr>
+                                    <th>日期</th>
+                                    <th>單位數</th>
+                                    <th>淨值</th>
+                                    <th>手續費</th>
+                                    <th>總成本</th>
+                                    <th>剩餘單位數</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${detailItemsHtml}
+                            </tbody>
                         </table>
                     </div>
-                </td>`;
+                </td>
+            `;
             tbody.appendChild(detailTr);
         });
     }
@@ -1714,13 +1779,24 @@
 
     function renderFundTransactionTable() {
         const tbody = document.getElementById('fund-transaction-table-body');
+        const nameFilter = document.getElementById('fund-transactions-name-filter');
+        const currentNameFilter = nameFilter ? nameFilter.value : '全部';
+
         const rows = [
             ...db.fundBuys.map(row => ({ ...row, item: '基金買入', type: 'fundBuy', amount: -(row.total || 0) })),
             ...db.fundSells.map(row => ({ ...row, item: '基金賣出', type: 'fundSell', amount: row.total || 0 }))
         ];
         rows.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        const fundNames = new Set(['全部']);
+        rows.forEach(r => fundNames.add(r.name));
+        const fundNamesArray = Array.from(fundNames).filter(n => n !== '全部').sort();
+        populateFilterDropdown('fund-transactions-name-filter', ['全部', ...fundNamesArray], currentNameFilter);
+
         tbody.innerHTML = '';
-        rows.forEach(row => {
+        const filtered = rows.filter(row => currentNameFilter === '全部' || row.name === currentNameFilter);
+
+        filtered.forEach(row => {
             const tr = document.createElement('tr');
             const editAction = row.type === 'fundBuy' ? `editFundBuy(${row.id})` : `editFundSell(${row.id})`;
             tr.innerHTML = `
@@ -1749,274 +1825,7 @@
         
         const totalBuyCost = db.buys.reduce((sum, row) => sum + row.total, 0);
         const totalSellRevenue = db.sells.reduce((sum, row) => sum + row.total, 0);
-
-        const totalFundBuyCost = db.fundBuys.reduce((sum, row) => sum + row.total, 0);
-        const totalFundSellRevenue = db.fundSells.reduce((sum, row) => sum + row.total, 0);
         
-        // 總可用餘額加總初始開帳現金
-        const mainAvailable = totalSaved + totalInitAmount - totalBuyCost + totalSellRevenue - totalFundBuyCost + totalFundSellRevenue;
-        const totalProfit = db.sells.reduce((sum, row) => sum + row.profit, 0);
-
-        document.getElementById('main-available').innerText = `$${mainAvailable.toLocaleString()}`;
-        document.getElementById('main-profit').innerText = `$${totalProfit.toLocaleString()}`;
-    }
-
-    function handleFormSubmit(event, type) {
-        event.preventDefault();
-        
-        if (type === 'saving') {
-            const data = {
-                id: editingId ? editingId : Date.now(),
-                date: document.getElementById('save-date').value,
-                item: document.getElementById('save-item').value,
-                amount: parseInt(document.getElementById('save-amount').value) || 0,
-                bank: document.getElementById('save-bank').value
-            };
-            if (editingId) {
-                const index = db.savings.findIndex(item => item.id === editingId);
-                db.savings[index] = data;
-            } else {
-                db.savings.push(data);
-            }
-        } else if (type === 'buy') {
-            const shares = parseFloat(document.getElementById('buy-shares').value) || 0;
-            const price = parseFloat(document.getElementById('buy-price').value) || 0;
-            const fee = parseFloat(document.getElementById('buy-fee').value) || 0;
-            const total = parseFloat(document.getElementById('buy-total').value) || 0;
-
-            const data = {
-                id: editingType === 'buy' && editingId ? editingId : Date.now(),
-                date: document.getElementById('buy-date').value,
-                type: document.getElementById('buy-type').value, 
-                company: document.getElementById('buy-company').value,
-                shares, price, fee, total
-            };
-            
-            if (editingType === 'buy' && editingId) {
-                const index = db.buys.findIndex(item => item.id === editingId);
-                if (index !== -1) {
-                    delete db.buys[index].initialShares;
-                    delete db.buys[index].fixedAdjustedPrice;
-                    db.buys[index] = { ...db.buys[index], ...data };
-                }
-            } else {
-                db.buys.push(data);
-            }
-        } else if (type === 'sell') {
-            const shares = parseFloat(document.getElementById('sell-shares').value) || 0;
-            const price = parseFloat(document.getElementById('sell-price').value) || 0;
-            const fee = parseFloat(document.getElementById('sell-fee').value) || 0;
-            const tax = parseFloat(document.getElementById('sell-tax').value) || 0;
-            const total = parseFloat(document.getElementById('sell-total').value) || 0;
-
-            const data = {
-                id: editingType === 'sell' && editingId ? editingId : Date.now(),
-                date: document.getElementById('sell-date').value,
-                company: document.getElementById('sell-company').value,
-                shares, price, fee, tax, total,
-                sellType: document.getElementById('sell-type').value,
-                profit: 0, performance: '0%', avgAdjustedBuyPrice: 0
-            };
-            if (editingType === 'sell' && editingId) {
-                const index = db.sells.findIndex(item => item.id === editingId);
-                if (index !== -1) db.sells[index] = data;
-            } else {
-                db.sells.push(data);
-            }
-        } else if (type === 'fund-buy') {
-            const units = parseFloat(document.getElementById('fund-buy-units').value) || 0;
-            const price = parseFloat(document.getElementById('fund-buy-price').value) || 0;
-            const fee = parseFloat(document.getElementById('fund-buy-fee').value) || 0;
-            const total = parseFloat(document.getElementById('fund-buy-total').value) || 0;
-
-            const data = {
-                id: editingType === 'fundBuy' && editingId ? editingId : Date.now(),
-                date: document.getElementById('fund-buy-date').value,
-                name: document.getElementById('fund-buy-name').value,
-                units, price, fee, total
-            };
-            if (editingType === 'fundBuy' && editingId) {
-                const index = db.fundBuys.findIndex(item => item.id === editingId);
-                if (index !== -1) db.fundBuys[index] = data;
-            } else {
-                db.fundBuys.push(data);
-            }
-        } else if (type === 'fund-sell') {
-            const units = parseFloat(document.getElementById('fund-sell-units').value) || 0;
-            const price = parseFloat(document.getElementById('fund-sell-price').value) || 0;
-            const fee = parseFloat(document.getElementById('fund-sell-fee').value) || 0;
-            const total = parseFloat(document.getElementById('fund-sell-total').value) || 0;
-
-            const data = {
-                id: editingType === 'fundSell' && editingId ? editingId : Date.now(),
-                date: document.getElementById('fund-sell-date').value,
-                name: document.getElementById('fund-sell-name').value,
-                units, price, fee, total
-            };
-            if (editingType === 'fundSell' && editingId) {
-                const index = db.fundSells.findIndex(item => item.id === editingId);
-                if (index !== -1) db.fundSells[index] = data;
-            } else {
-                db.fundSells.push(data);
-            }
-        }
-
-        saveDataToStorage(); 
-        closeModal();
-        sortAllDataByDate();
-        refreshAllViews();
-    }
-
-    function editSaving(id) {
-        const data = db.savings.find(item => item.id === id);
-        if (!data) return;
-        openModal(); selectFormType('saving');
-        document.getElementById('save-date').value = data.date;
-        document.getElementById('save-item').value = data.item;
-        document.getElementById('save-amount').value = data.amount;
-        document.getElementById('save-bank').value = data.bank || '';
-        editingId = id; editingType = 'saving';
-    }
-
-    function editBuy(id) {
-        const data = db.buys.find(item => item.id === id);
-        if (!data) return;
-        openModal(); selectFormType('buy');
-        document.getElementById('buy-date').value = data.date;
-        document.getElementById('buy-type').value = data.type || '個股';
-        document.getElementById('buy-company').value = data.company;
-        document.getElementById('buy-shares').value = data.initialShares || data.shares;
-        document.getElementById('buy-price').value = data.price;
-        document.getElementById('buy-fee').value = data.fee;
-        document.getElementById('buy-total').value = data.total;
-        document.getElementById('buy-regular').checked = data.fee === 1;
-        document.getElementById('buy-fee').readOnly = data.fee === 1;
-        buyFeeManual = true;
-        editingId = id; editingType = 'buy';
-    }
-
-    function editSell(id) {
-        const data = db.sells.find(item => item.id === id);
-        if (!data) return;
-        openModal(); selectFormType('sell');
-        document.getElementById('sell-date').value = data.date;
-        document.getElementById('sell-type').value = data.sellType || '個股';
-        document.getElementById('sell-company').value = data.company;
-        document.getElementById('sell-shares').value = data.shares;
-        document.getElementById('sell-price').value = data.price;
-        document.getElementById('sell-fee').value = data.fee;
-        document.getElementById('sell-tax').value = data.tax;
-        document.getElementById('sell-total').value = data.total;
-        sellFeeManual = true; sellTaxManual = true;
-        editingId = id; editingType = 'sell';
-    }
-
-    function editFundBuy(id) {
-        const data = db.fundBuys.find(item => item.id === id);
-        if (!data) return;
-        openModal(); selectFormType('fund-buy');
-        document.getElementById('fund-buy-date').value = data.date;
-        document.getElementById('fund-buy-name').value = data.name;
-        document.getElementById('fund-buy-units').value = data.units;
-        document.getElementById('fund-buy-price').value = data.price;
-        document.getElementById('fund-buy-fee').value = data.fee;
-        document.getElementById('fund-buy-total').value = data.total;
-        editingId = id; editingType = 'fundBuy';
-    }
-
-    function editFundSell(id) {
-        const data = db.fundSells.find(item => item.id === id);
-        if (!data) return;
-        openModal(); selectFormType('fund-sell');
-        document.getElementById('fund-sell-date').value = data.date;
-        document.getElementById('fund-sell-name').value = data.name;
-        document.getElementById('fund-sell-units').value = data.units;
-        document.getElementById('fund-sell-price').value = data.price;
-        document.getElementById('fund-sell-fee').value = data.fee;
-        document.getElementById('fund-sell-total').value = data.total;
-        editingId = id; editingType = 'fundSell';
-    }
-</script>
-
-</body>
-</html>         <td>${row.date}</td>
-                <td>${row.name}</td>
-                <td>${row.units.toLocaleString()}</td>
-                <td>$${row.price.toLocaleString(undefined, {minimumFractionDigits: 4})}</td>
-                <td>$${row.fee.toLocaleString()}</td>
-                <td>$${row.total.toLocaleString()}</td>
-                <td>
-                    <div class="action-btns">
-                        <button class="btn-edit" onclick="editFundBuy(${row.id})">編輯</button>
-                        <button class="btn-delete" onclick="deleteRecord('fundBuy', ${row.id})">🗑️</button>
-                    </div>
-                </td>
-            `;
-            tbody.appendChild(tr);
-        });
-    }
-
-    function renderFundSellTable() {
-        const tbody = document.getElementById('fund-sell-table-body');
-        tbody.innerHTML = '';
-        db.fundSells.forEach(row => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${row.date}</td>
-                <td>${row.name}</td>
-                <td>${row.units.toLocaleString()}</td>
-                <td>$${row.price.toLocaleString(undefined, {minimumFractionDigits: 4})}</td>
-                <td>$${row.fee.toLocaleString()}</td>
-                <td>$${row.total.toLocaleString()}</td>
-                <td>
-                    <div class="action-btns">
-                        <button class="btn-edit" onclick="editFundSell(${row.id})">編輯</button>
-                        <button class="btn-delete" onclick="deleteRecord('fundSell', ${row.id})">🗑️</button>
-                    </div>
-                </td>
-            `;
-            tbody.appendChild(tr);
-        });
-    }
-
-    function renderFundTransactionTable() {
-        const tbody = document.getElementById('fund-transaction-table-body');
-        const rows = [
-            ...db.fundBuys.map(row => ({ ...row, item: '基金買入', type: 'fundBuy', amount: -(row.total || 0) })),
-            ...db.fundSells.map(row => ({ ...row, item: '基金賣出', type: 'fundSell', amount: row.total || 0 }))
-        ];
-        rows.sort((a, b) => new Date(a.date) - new Date(b.date));
-        tbody.innerHTML = '';
-        rows.forEach(row => {
-            const tr = document.createElement('tr');
-            const editAction = row.type === 'fundBuy' ? `editFundBuy(${row.id})` : `editFundSell(${row.id})`;
-            tr.innerHTML = `
-                <td>${row.date}</td>
-                <td>${row.item}</td>
-                <td>${row.name}</td>
-                <td>${row.units.toLocaleString()}</td>
-                <td>$${row.price.toLocaleString(undefined, {minimumFractionDigits: 4})}</td>
-                <td>$${row.fee.toLocaleString()}</td>
-                <td>$${row.amount.toLocaleString()}</td>
-                <td>
-                    <div class="action-btns">
-                        <button class="btn-edit" onclick="${editAction}">編輯</button>
-                        <button class="btn-delete" onclick="deleteRecord('${row.type}', ${row.id})">🗑️</button>
-                    </div>
-                </td>
-            `;
-            tbody.appendChild(tr);
-        });
-    }
-
-    function calculateMainSummary() {
-        // 金額包含：日常存錢 + 初始設定開帳金額
-        const totalSaved = db.savings.reduce((sum, row) => sum + row.amount, 0);
-        const totalInitAmount = db.initAmounts.reduce((sum, row) => sum + row.amount, 0);
-        
-        const totalBuyCost = db.buys.reduce((sum, row) => sum + row.total, 0);
-        const totalSellRevenue = db.sells.reduce((sum, row) => sum + row.total, 0);
-
         const totalFundBuyCost = db.fundBuys.reduce((sum, row) => sum + row.total, 0);
         const totalFundSellRevenue = db.fundSells.reduce((sum, row) => sum + row.total, 0);
         
@@ -2196,7 +2005,7 @@
         document.getElementById('fund-buy-base-cost').value = data.baseCost || (data.total - (data.fee || 0));
         document.getElementById('fund-buy-units').value = data.units;
         document.getElementById('fund-buy-price').value = data.price;
-        document.getElementById('fund-buy-fee').value = data.fee;
+        document.getElementById('fund-buy-fee').value = data.fee || 0;
         document.getElementById('fund-buy-total').value = data.total;
         editingId = id; editingType = 'fundBuy';
     }
