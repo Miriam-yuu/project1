@@ -356,10 +356,10 @@
             <h2 style="margin-top: 0; margin-bottom: 5px;">⚙️ 帳戶初始資金與股票設定</h2>
             <p style="color: #718096; margin-top: 0; font-size: 14px;">（提示：存錢目標開始前的既有資金與股票可在此輸入，金額不會記入「股市記帳工具」的存錢目標中）</p>
             
-            <!-- 上半張表：原始金額設定 -->
+            <!-- 上半張表：初始金額設定 -->
             <div class="section-header">
-                <h3>💰 1. 原始資金設定 (帳戶既有現金)</h3>
-                <button class="section-inline-btn" onclick="openInitModal('amount')">+ 新增原始金額</button>
+                <h3>💰 1. 初始資金設定 (帳戶既有現金)</h3>
+                <button class="section-inline-btn" onclick="openInitModal('amount')">+ 新增初始金額</button>
             </div>
             <table>
                 <thead>
@@ -635,10 +635,7 @@
             </div>
             <div class="form-group">
                 <label>存入（選填）</label>
-                <select id="save-bank">
-                    <option value="">-- 請選擇 --</option>
-                    <option value="新光">新光</option>
-                </select>
+                <div id="save-bank-wrapper"></div>
             </div>
             <button type="submit" class="submit-btn">儲存資料</button>
         </form>
@@ -724,11 +721,11 @@
             </div>
             <div class="form-group">
                 <label>銀行 / 證券商</label>
-                <input type="text" id="init-amt-bank" placeholder="例如: 國泰證券、新光銀行" required>
+                <input type="text" id="init-amt-bank" placeholder="例如: 新光銀行、國泰證券" required>
             </div>
             <div class="form-group">
                 <label>金額</label>
-                <input type="number" id="init-amt-value" placeholder="請輸入開帳原始金額" required>
+                <input type="number" id="init-amt-value" placeholder="請輸入初始金額" required>
             </div>
             <button type="submit" class="submit-btn">儲存初始金額</button>
         </form>
@@ -736,7 +733,7 @@
         <!-- 初始股票持股表單 -->
         <form id="form-init-stock" style="display: none;" onsubmit="handleInitStockSubmit(event)">
             <div class="form-group">
-                <label>日期 (接手日或長輩原始買入日)</label>
+                <label>日期 (原始買入日或目標開始日)</label>
                 <input type="date" id="init-stk-date" required>
             </div>
             <div class="form-group">
@@ -1301,7 +1298,7 @@
         populateNameSelector('sell-company', getAllUniqueStockCompanies(), '');
         document.getElementById('sell-shares').value = '';
         document.getElementById('sell-price').value = '';
-        document.getElementById('save-bank').value = '';
+        populateNameSelector('save-bank', getAllUniqueBanks(), '');
         document.getElementById('buy-fee').value = '';
         document.getElementById('buy-total').value = '';
         document.getElementById('sell-type').value = '個股';
@@ -1352,7 +1349,8 @@
         else if (type === 'fund-sell') calcFundSellTotal();
         
         // 切換時重新刷新名稱選擇器
-        if (type === 'buy') populateNameSelector('buy-company', getAllUniqueStockCompanies(), '');
+        if (type === 'saving') populateNameSelector('save-bank', getAllUniqueBanks(), '');
+        else if (type === 'buy') populateNameSelector('buy-company', getAllUniqueStockCompanies(), '');
         else if (type === 'sell') populateNameSelector('sell-company', getAllUniqueStockCompanies(), '');
         else if (type === 'fund-buy') populateNameSelector('fund-buy-name', getAllUniqueFundNames(), '');
         else if (type === 'fund-sell') populateNameSelector('fund-sell-name', getAllUniqueFundNames(), '');
@@ -1365,6 +1363,14 @@
         db.sells.forEach(s => names.add(s.company));
         db.initStocks.forEach(i => names.add(i.company));
         return Array.from(names).filter(n => n).sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+    }
+
+    // 輔助函數：獲取所有不重複的銀行/存入帳號名稱
+    function getAllUniqueBanks() {
+        const banks = new Set();
+        db.savings.forEach(s => { if(s.bank) banks.add(s.bank); });
+        db.initAmounts.forEach(i => { if(i.bank) banks.add(i.bank); });
+        return Array.from(banks).filter(b => b).sort((a, b) => a.localeCompare(b, 'zh-Hant'));
     }
 
     // 輔助函數：獲取所有不重複的基金名稱
@@ -2049,7 +2055,7 @@
                 date: document.getElementById('save-date').value,
                 item: document.getElementById('save-item').value,
                 amount: parseInt(document.getElementById('save-amount').value) || 0,
-                bank: document.getElementById('save-bank').value
+                bank: getNameFromSelector('save-bank')
             };
             if (editingId) {
                 const index = db.savings.findIndex(item => item.id === editingId);
@@ -2155,7 +2161,7 @@
         document.getElementById('save-date').value = data.date;
         document.getElementById('save-item').value = data.item;
         document.getElementById('save-amount').value = data.amount;
-        document.getElementById('save-bank').value = data.bank || '';
+        populateNameSelector('save-bank', getAllUniqueBanks(), data.bank || '');
         editingId = id; editingType = 'saving';
     }
 
