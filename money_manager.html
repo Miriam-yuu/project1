@@ -291,6 +291,11 @@
         .form-form { display: none; }
         .form-form.active { display: block; }
         
+        /* 動態名稱選擇器樣式 */
+        .name-select, .name-manual-input { width: 100%; padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box; }
+        .name-manual-input { margin-top: 5px; }
+        .name-manual-input:placeholder-shown { font-style: italic; }
+        
         .page { display: none; }
         .page.active { display: block; }
     </style>
@@ -595,7 +600,10 @@
         <form id="form-buy" class="form-form" onsubmit="handleFormSubmit(event, 'buy')">
             <div class="form-group"><label>日期</label><input type="date" id="buy-date" required></div>
             <div class="form-group"><label>性質</label><select id="buy-type" required><option value="個股">個股</option><option value="ETF">ETF</option></select></div>
-            <div class="form-group"><label>公司</label><input type="text" id="buy-company" placeholder="例如: 2330 台積電" required></div>
+            <div class="form-group">
+                <label>公司</label>
+                <div id="buy-company-wrapper"></div>
+            </div>
             <div class="form-group"><label>股數</label><input type="number" id="buy-shares" oninput="calcBuyTotal()" placeholder="0" required></div>
             <div class="form-group"><label>成交價</label><input type="number" step="0.01" id="buy-price" oninput="calcBuyTotal()" placeholder="0.00" required></div>
             <div class="form-group form-group-inline">
@@ -610,7 +618,10 @@
         <form id="form-sell" class="form-form" onsubmit="handleFormSubmit(event, 'sell')">
             <div class="form-group"><label>日期</label><input type="date" id="sell-date" required></div>
             <div class="form-group"><label>性質</label><select id="sell-type" onchange="handleSellTypeChange()" required><option value="個股">個股</option><option value="ETF">ETF</option></select></div>
-            <div class="form-group"><label>公司</label><input type="text" id="sell-company" placeholder="例如: 2330 台積電" required></div>
+            <div class="form-group">
+                <label>公司</label>
+                <div id="sell-company-wrapper"></div>
+            </div>
             <div class="form-group"><label>股數</label><input type="number" id="sell-shares" oninput="calcSellTotal()" placeholder="0" required></div>
             <div class="form-group"><label>成交價</label><input type="number" step="0.01" id="sell-price" oninput="calcSellTotal()" placeholder="0.00" required></div>
             <div class="form-group"><label>手續費</label><input type="number" id="sell-fee" oninput="handleSellFeeInput()" required></div>
@@ -621,7 +632,10 @@
 
         <form id="form-fund-buy" class="form-form" onsubmit="handleFormSubmit(event, 'fund-buy')">
             <div class="form-group"><label>日期</label><input type="date" id="fund-buy-date" required></div>
-            <div class="form-group"><label>基金名稱</label><input type="text" id="fund-buy-name" placeholder="例如: 安聯台灣科技基金" required></div>
+            <div class="form-group">
+                <label>基金名稱</label>
+                <div id="fund-buy-name-wrapper"></div>
+            </div>
             <div class="form-group"><label>成本</label><input type="number" id="fund-buy-base-cost" oninput="calcFundBuyTotal()" placeholder="0" required></div>
             <div class="form-group"><label>匯率</label><input type="number" step="0.0001" id="fund-buy-rate" value="1" required></div>
             <div class="form-group"><label>申購淨值</label><input type="number" step="0.0001" id="fund-buy-price" oninput="calcFundBuyTotal()" placeholder="0.0000" required></div>
@@ -633,7 +647,10 @@
 
         <form id="form-fund-sell" class="form-form" onsubmit="handleFormSubmit(event, 'fund-sell')">
             <div class="form-group"><label>日期</label><input type="date" id="fund-sell-date" required></div>
-            <div class="form-group"><label>基金名稱</label><input type="text" id="fund-sell-name" placeholder="例如: 安聯台灣科技基金" required></div>
+            <div class="form-group">
+                <label>基金名稱</label>
+                <div id="fund-sell-name-wrapper"></div>
+            </div>
             <div class="form-group"><label>單位數</label><input type="number" step="0.0001" id="fund-sell-units" oninput="calcFundSellTotal()" placeholder="0.0000" required></div>
             <div class="form-group"><label>淨值</label><input type="number" step="0.0001" id="fund-sell-price" oninput="calcFundSellTotal()" placeholder="0.0000" required></div>
             <div class="form-group"><label>手續費</label><input type="number" id="fund-sell-fee" oninput="calcFundSellTotal()" value="0"></div>
@@ -1199,12 +1216,13 @@
         document.getElementById('save-date').value = today;
         document.getElementById('buy-date').value = today;
         document.getElementById('sell-date').value = today;
+
         document.getElementById('save-amount').value = '';
         document.getElementById('buy-type').value = '個股';
-        document.getElementById('buy-company').value = '';
+        populateNameSelector('buy-company', getAllUniqueStockCompanies(), '');
         document.getElementById('buy-shares').value = '';
         document.getElementById('buy-price').value = '';
-        document.getElementById('sell-company').value = '';
+        populateNameSelector('sell-company', getAllUniqueStockCompanies(), '');
         document.getElementById('sell-shares').value = '';
         document.getElementById('sell-price').value = '';
         document.getElementById('save-bank').value = '';
@@ -1218,7 +1236,7 @@
         document.getElementById('buy-fee').readOnly = false;
 
         document.getElementById('fund-buy-date').value = today;
-        document.getElementById('fund-buy-name').value = '';
+        populateNameSelector('fund-buy-name', getAllUniqueFundNames(), '');
         document.getElementById('fund-buy-base-cost').value = '';
         document.getElementById('fund-buy-rate').value = '1';
         document.getElementById('fund-buy-units').value = '';
@@ -1226,7 +1244,7 @@
         document.getElementById('fund-buy-total').value = '';
 
         document.getElementById('fund-sell-date').value = today;
-        document.getElementById('fund-sell-name').value = '';
+        populateNameSelector('fund-sell-name', getAllUniqueFundNames(), '');
         document.getElementById('fund-sell-units').value = '';
         document.getElementById('fund-sell-price').value = '';
         document.getElementById('fund-sell-fee').value = '';
@@ -1256,6 +1274,100 @@
         else if (type === 'sell') calcSellTotal();
         else if (type === 'fund-buy') calcFundBuyTotal();
         else if (type === 'fund-sell') calcFundSellTotal();
+        
+        // 切換時重新刷新名稱選擇器
+        if (type === 'buy') populateNameSelector('buy-company', getAllUniqueStockCompanies(), '');
+        else if (type === 'sell') populateNameSelector('sell-company', getAllUniqueStockCompanies(), '');
+        else if (type === 'fund-buy') populateNameSelector('fund-buy-name', getAllUniqueFundNames(), '');
+        else if (type === 'fund-sell') populateNameSelector('fund-sell-name', getAllUniqueFundNames(), '');
+    }
+
+    // 輔助函數：獲取所有不重複的公司名稱 (股票)
+    function getAllUniqueStockCompanies() {
+        const names = new Set();
+        db.buys.forEach(b => names.add(b.company));
+        db.sells.forEach(s => names.add(s.company));
+        db.initStocks.forEach(i => names.add(i.company));
+        return Array.from(names).filter(n => n).sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+    }
+
+    // 輔助函數：獲取所有不重複的基金名稱
+    function getAllUniqueFundNames() {
+        const names = new Set();
+        db.fundBuys.forEach(fb => names.add(fb.name));
+        db.fundSells.forEach(fs => names.add(fs.name));
+        return Array.from(names).filter(n => n).sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+    }
+
+    // 核心函數：動態生成名稱選擇器
+    function populateNameSelector(fieldId, uniqueNames, selectedValue = '') {
+        const wrapper = document.getElementById(`${fieldId}-wrapper`);
+        if (!wrapper) return;
+        wrapper.innerHTML = '';
+
+        const select = document.createElement('select');
+        select.id = `${fieldId}-select`;
+        select.className = 'name-select';
+        select.onchange = () => {
+            const manualInput = document.getElementById(`${fieldId}-manual`);
+            if (select.value === 'manual') {
+                manualInput.style.display = 'block';
+                manualInput.value = '';
+                manualInput.focus();
+            } else {
+                manualInput.style.display = 'none';
+            }
+        };
+
+        let defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = '-- 請選擇 --';
+        select.appendChild(defaultOption);
+
+        uniqueNames.forEach(name => {
+            let option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            select.appendChild(option);
+        });
+
+        let manualOption = document.createElement('option');
+        manualOption.value = 'manual';
+        manualOption.textContent = '自定義輸入...';
+        select.appendChild(manualOption);
+
+        const manualInput = document.createElement('input');
+        manualInput.type = 'text';
+        manualInput.id = `${fieldId}-manual`;
+        manualInput.className = 'name-manual-input';
+        manualInput.placeholder = '請輸入名稱';
+        manualInput.style.display = 'none';
+
+        wrapper.appendChild(select);
+        wrapper.appendChild(manualInput);
+
+        // 設定預設選取值
+        if (selectedValue) {
+            if (uniqueNames.includes(selectedValue)) {
+                select.value = selectedValue;
+            } else {
+                select.value = 'manual';
+                manualInput.style.display = 'block';
+                manualInput.value = selectedValue;
+            }
+        } else if (uniqueNames.length === 0) {
+            // 如果沒有歷史記錄，直接開自填
+            select.value = 'manual';
+            manualInput.style.display = 'block';
+        }
+    }
+
+    // 輔助函數：從選擇器獲取名稱
+    function getNameFromSelector(fieldId) {
+        const select = document.getElementById(`${fieldId}-select`);
+        const manual = document.getElementById(`${fieldId}-manual`);
+        if (select && select.value !== 'manual') return select.value;
+        return manual ? manual.value.trim() : '';
     }
 
     function handleBuyRegularToggle() {
@@ -1350,7 +1462,7 @@
         editingId = null; editingType = null;
         selectFormType('sell');
         document.getElementById('sell-type').value = type || '個股';
-        document.getElementById('sell-company').value = company;
+        populateNameSelector('sell-company', getAllUniqueStockCompanies(), company);
         document.getElementById('sell-shares').value = shares;
         document.getElementById('sell-price').value = adjustedPrice; 
         calcSellTotal();
@@ -1363,7 +1475,7 @@
         resetDates();
         editingId = null; editingType = null;
         selectFormType('fund-sell');
-        document.getElementById('fund-sell-name').value = name;
+        populateNameSelector('fund-sell-name', getAllUniqueFundNames(), name);
         document.getElementById('fund-sell-units').value = units;
         document.getElementById('fund-sell-price').value = price; 
         calcFundSellTotal();
@@ -1869,7 +1981,7 @@
                 id: editingType === 'buy' && editingId ? editingId : Date.now(),
                 date: document.getElementById('buy-date').value,
                 type: document.getElementById('buy-type').value, 
-                company: document.getElementById('buy-company').value,
+                company: getNameFromSelector('buy-company'),
                 shares, price, fee, total
             };
             
@@ -1893,7 +2005,7 @@
             const data = {
                 id: editingType === 'sell' && editingId ? editingId : Date.now(),
                 date: document.getElementById('sell-date').value,
-                company: document.getElementById('sell-company').value,
+                company: getNameFromSelector('sell-company'),
                 shares, price, fee, tax, total,
                 sellType: document.getElementById('sell-type').value,
                 profit: 0, performance: '0%', avgAdjustedBuyPrice: 0
@@ -1915,7 +2027,7 @@
             const data = {
                 id: editingType === 'fundBuy' && editingId ? editingId : Date.now(),
                 date: document.getElementById('fund-buy-date').value,
-                name: document.getElementById('fund-buy-name').value,
+                name: getNameFromSelector('fund-buy-name'),
                 baseCost, rate, units, price, fee, total
             };
             if (editingType === 'fundBuy' && editingId) {
@@ -1933,7 +2045,7 @@
             const data = {
                 id: editingType === 'fundSell' && editingId ? editingId : Date.now(),
                 date: document.getElementById('fund-sell-date').value,
-                name: document.getElementById('fund-sell-name').value,
+                name: getNameFromSelector('fund-sell-name'),
                 units, price, fee, total
             };
             if (editingType === 'fundSell' && editingId) {
@@ -1967,7 +2079,7 @@
         openModal(); selectFormType('buy');
         document.getElementById('buy-date').value = data.date;
         document.getElementById('buy-type').value = data.type || '個股';
-        document.getElementById('buy-company').value = data.company;
+        populateNameSelector('buy-company', getAllUniqueStockCompanies(), data.company);
         document.getElementById('buy-shares').value = data.initialShares || data.shares;
         document.getElementById('buy-price').value = data.price;
         document.getElementById('buy-fee').value = data.fee;
@@ -1984,7 +2096,7 @@
         openModal(); selectFormType('sell');
         document.getElementById('sell-date').value = data.date;
         document.getElementById('sell-type').value = data.sellType || '個股';
-        document.getElementById('sell-company').value = data.company;
+        populateNameSelector('sell-company', getAllUniqueStockCompanies(), data.company);
         document.getElementById('sell-shares').value = data.shares;
         document.getElementById('sell-price').value = data.price;
         document.getElementById('sell-fee').value = data.fee;
@@ -1999,7 +2111,7 @@
         if (!data) return;
         openModal(); selectFormType('fund-buy');
         document.getElementById('fund-buy-date').value = data.date;
-        document.getElementById('fund-buy-name').value = data.name;
+        populateNameSelector('fund-buy-name', getAllUniqueFundNames(), data.name);
         document.getElementById('fund-buy-base-cost').value = data.baseCost || (data.total - (data.fee || 0));
         document.getElementById('fund-buy-rate').value = data.rate || 1;
         document.getElementById('fund-buy-units').value = data.units;
@@ -2014,7 +2126,7 @@
         if (!data) return;
         openModal(); selectFormType('fund-sell');
         document.getElementById('fund-sell-date').value = data.date;
-        document.getElementById('fund-sell-name').value = data.name;
+        populateNameSelector('fund-sell-name', getAllUniqueFundNames(), data.name);
         document.getElementById('fund-sell-units').value = data.units;
         document.getElementById('fund-sell-price').value = data.price;
         document.getElementById('fund-sell-fee').value = data.fee;
