@@ -214,6 +214,37 @@
             border-bottom: 2px solid var(--primary-color);
         }
 
+        /* 父分頁垂直樣式 */
+        .tabs-container {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+        }
+        .tabs-level-1 {
+            flex-direction: column;
+            border-bottom: none;
+            border-right: 2px solid #e2e8f0;
+            width: 150px;
+            flex-shrink: 0;
+        }
+        .tabs-level-1 .tab {
+            border-bottom: none;
+            border-right: 2px solid transparent;
+            margin-bottom: 5px;
+            margin-right: -2px;
+            text-align: left;
+            padding: 12px 15px;
+        }
+        .tabs-level-1 .tab.active {
+            border-bottom: none;
+            border-right: 2px solid var(--primary-color);
+            background-color: #ebf8ff;
+        }
+        .tab-content-area {
+            flex: 1;
+            min-width: 0;
+        }
+
         /* 存錢記錄內部的小統整欄 */
         .saving-summary {
             display: flex;
@@ -386,183 +417,185 @@
                     <div class="tab" data-target-group="fund" onclick="switchParentTab(this, 'fund')">基金</div>
                 </div>
 
-                <div class="tabs-level-2-group" id="tabs-group-stock" style="display: none; margin-bottom: 20px;">
-                    <div class="tabs tabs-level-2">
-                        <div class="tab active" onclick="switchChildTab(this, 'unrealized', 'stock')">未實現損益</div>
-                        <div class="tab" onclick="switchChildTab(this, 'realized', 'stock')">已實現損益</div>
-                        <div class="tab" onclick="switchChildTab(this, 'transactions', 'stock')">交易總明細</div>
+                <div class="tab-content-area">
+                    <div class="tabs-level-2-group" id="tabs-group-stock" style="display: none; margin-bottom: 20px;">
+                        <div class="tabs tabs-level-2">
+                            <div class="tab active" onclick="switchChildTab(this, 'unrealized', 'stock')">未實現損益</div>
+                            <div class="tab" onclick="switchChildTab(this, 'realized', 'stock')">已實現損益</div>
+                            <div class="tab" onclick="switchChildTab(this, 'transactions', 'stock')">交易總明細</div>
+                        </div>
+                    </div>
+
+                    <div class="tabs-level-2-group" id="tabs-group-fund" style="display: none; margin-bottom: 20px;">
+                        <div class="tabs tabs-level-2">
+                            <div class="tab active" onclick="switchChildTab(this, 'fund-buy', 'fund')">基金買入</div>
+                            <div class="tab" onclick="switchChildTab(this, 'fund-sell', 'fund')">基金賣出</div>
+                            <div class="tab" onclick="switchChildTab(this, 'fund-transactions', 'fund')">基金總明細</div>
+                        </div>
+                    </div>
+
+                    <!-- 存錢記錄子頁面 -->
+                    <div id="saving-page" class="page active">
+                        <div class="saving-summary">
+                            <div>
+                                <label>目標價設定 (不包含初始金額)</label>
+                                <input type="number" id="target-input" value="1000000" oninput="handleTargetInput()">
+                            </div>
+                            <div>
+                                <label>已存入</label>
+                                <p id="summary-saved" style="margin:5px 0; font-size:18px; font-weight:bold;">$0</p>
+                            </div>
+                            <div>
+                                <label>距目標</label>
+                                <p id="summary-distance" style="margin:5px 0; font-size:18px; font-weight:bold; color:var(--danger-color);">$0</p>
+                            </div>
+                        </div>
+
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>日期</th>
+                                    <th>
+                                        項目
+                                        <select id="saving-filter" class="header-filter" onchange="renderSavingTable()">
+                                            <option value="全部">全部</option>
+                                            <option value="現金">現金</option>
+                                            <option value="股利">股利</option>
+                                            <option value="初始資金">⚙️ 初始資金</option>
+                                        </select>
+                                    </th>
+                                    <th>金額</th>
+                                    <th>存入</th>
+                                    <th>累積</th>
+                                    <th>距離目標</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="saving-table-body"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- 未實現損益子頁面 -->
+                    <div id="unrealized-page" class="page">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>性質</th>
+                                    <th>公司</th>
+                                    <th>股數</th>
+                                    <th style="color: var(--primary-color);">調整單價</th>
+                                    <th>明細</th>
+                                    <th>總成本</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="unrealized-table-body"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- 已實現損益子頁面 -->
+                    <div id="realized-page" class="page">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>日期</th>
+                                    <th>
+                                        公司 <select id="realized-company-filter" class="header-filter" onchange="renderRealizedTable()"></select>
+                                    </th>
+                                    <th>股數</th>
+                                    <th>成交價</th>
+                                    <th>手續費</th>
+                                    <th>證交稅</th>
+                                    <th>實收金額</th>
+                                    <th>買入調整成交價</th>
+                                    <th>損益</th>
+                                    <th>績效</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="realized-table-body"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- 交易總明細子頁面 -->
+                    <div id="transactions-page" class="page">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>日期</th>
+                                    <th>性質 <select id="transactions-nature-filter" class="header-filter" onchange="renderTransactionTable()"></select></th>
+                                    <th>項目</th>
+                                    <th>
+                                        公司 <select id="transactions-company-filter" class="header-filter" onchange="renderTransactionTable()"></select>
+                                    </th>
+                                    <th>股數</th>
+                                    <th>成交價</th>
+                                    <th>手續費</th>
+                                    <th>證交稅</th>
+                                    <th>金額</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transaction-table-body"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- 基金買入子頁面 -->
+                    <div id="fund-buy-page" class="page">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>基金名稱</th>
+                                    <th>單位數</th>
+                                    <th>總成本</th>
+                                    <th>明細</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fund-buy-table-body"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- 基金賣出子頁面 -->
+                    <div id="fund-sell-page" class="page">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>日期</th>
+                                    <th>基金名稱</th>
+                                    <th>單位數</th>
+                                    <th>賣出淨值</th>
+                                    <th>手續費</th>
+                                    <th>實收金額</th>
+                                    <th>買入淨值</th>
+                                    <th>損益</th>
+                                    <th>績效</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fund-sell-table-body"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- 基金總明細子頁面 -->
+                    <div id="fund-transactions-page" class="page">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>日期</th>
+                                    <th>項目</th>
+                                    <th>基金名稱 <select id="fund-transactions-name-filter" class="header-filter" onchange="renderFundTransactionTable()"></select></th>
+                                    <th>單位數</th>
+                                    <th>淨值</th>
+                                    <th>手續費</th>
+                                    <th>金額</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fund-transaction-table-body"></tbody>
+                        </table>
                     </div>
                 </div>
-
-                <div class="tabs-level-2-group" id="tabs-group-fund" style="display: none; margin-bottom: 20px;">
-                    <div class="tabs tabs-level-2">
-                        <div class="tab active" onclick="switchChildTab(this, 'fund-buy', 'fund')">基金買入</div>
-                        <div class="tab" onclick="switchChildTab(this, 'fund-sell', 'fund')">基金賣出</div>
-                        <div class="tab" onclick="switchChildTab(this, 'fund-transactions', 'fund')">基金總明細</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 存錢記錄子頁面 -->
-            <div id="saving-page" class="page active">
-                <div class="saving-summary">
-                    <div>
-                        <label>目標價設定 (不包含初始金額)</label>
-                        <input type="number" id="target-input" value="1000000" oninput="handleTargetInput()">
-                    </div>
-                    <div>
-                        <label>已存入</label>
-                        <p id="summary-saved" style="margin:5px 0; font-size:18px; font-weight:bold;">$0</p>
-                    </div>
-                    <div>
-                        <label>距目標</label>
-                        <p id="summary-distance" style="margin:5px 0; font-size:18px; font-weight:bold; color:var(--danger-color);">$0</p>
-                    </div>
-                </div>
-
-                <table>
-                    <thead>
-                        <tr>
-                            <th>日期</th>
-                            <th>
-                                項目
-                                <select id="saving-filter" class="header-filter" onchange="renderSavingTable()">
-                                    <option value="全部">全部</option>
-                                    <option value="現金">現金</option>
-                                    <option value="股利">股利</option>
-                                    <option value="初始資金">⚙️ 初始資金</option>
-                                </select>
-                            </th>
-                            <th>金額</th>
-                            <th>存入</th>
-                            <th>累積</th>
-                            <th>距離目標</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="saving-table-body"></tbody>
-                </table>
-            </div>
-
-            <!-- 未實現損益子頁面 -->
-            <div id="unrealized-page" class="page">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>性質</th>
-                            <th>公司</th>
-                            <th>股數</th>
-                            <th style="color: var(--primary-color);">調整單價</th>
-                            <th>明細</th>
-                            <th>總成本</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="unrealized-table-body"></tbody>
-                </table>
-            </div>
-
-            <!-- 已實現損益子頁面 -->
-            <div id="realized-page" class="page">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>日期</th>
-                            <th>
-                                公司 <select id="realized-company-filter" class="header-filter" onchange="renderRealizedTable()"></select>
-                            </th>
-                            <th>股數</th>
-                            <th>成交價</th>
-                            <th>手續費</th>
-                            <th>證交稅</th>
-                            <th>實收金額</th>
-                            <th>買入調整成交價</th>
-                            <th>損益</th>
-                            <th>績效</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="realized-table-body"></tbody>
-                </table>
-            </div>
-
-            <!-- 交易總明細子頁面 -->
-            <div id="transactions-page" class="page">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>日期</th>
-                            <th>性質 <select id="transactions-nature-filter" class="header-filter" onchange="renderTransactionTable()"></select></th>
-                            <th>項目</th>
-                            <th>
-                                公司 <select id="transactions-company-filter" class="header-filter" onchange="renderTransactionTable()"></select>
-                            </th>
-                            <th>股數</th>
-                            <th>成交價</th>
-                            <th>手續費</th>
-                            <th>證交稅</th>
-                            <th>金額</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="transaction-table-body"></tbody>
-                </table>
-            </div>
-
-            <!-- 基金買入子頁面 -->
-            <div id="fund-buy-page" class="page">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>基金名稱</th>
-                            <th>單位數</th>
-                            <th>總成本</th>
-                            <th>明細</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="fund-buy-table-body"></tbody>
-                </table>
-            </div>
-
-            <!-- 基金賣出子頁面 -->
-            <div id="fund-sell-page" class="page">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>日期</th>
-                            <th>基金名稱</th>
-                            <th>單位數</th>
-                            <th>賣出淨值</th>
-                            <th>手續費</th>
-                            <th>實收金額</th>
-                            <th>買入淨值</th>
-                            <th>損益</th>
-                            <th>績效</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="fund-sell-table-body"></tbody>
-                </table>
-            </div>
-
-            <!-- 基金總明細子頁面 -->
-            <div id="fund-transactions-page" class="page">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>日期</th>
-                            <th>項目</th>
-                            <th>基金名稱 <select id="fund-transactions-name-filter" class="header-filter" onchange="renderFundTransactionTable()"></select></th>
-                            <th>單位數</th>
-                            <th>淨值</th>
-                            <th>手續費</th>
-                            <th>金額</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="fund-transaction-table-body"></tbody>
-                </table>
             </div>
         </div>
     </div>
