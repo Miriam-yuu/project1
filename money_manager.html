@@ -2025,8 +2025,10 @@
                 detailItemsHtml += `
                     <tr>
                         <td>${item.date}</td>
-                        <td>${item.units.toLocaleString(undefined, {minimumFractionDigits: 4})}</td>
-                        <td>$${item.price.toLocaleString(undefined, {minimumFractionDigits: 4})}</td>
+                        <td>$${(item.baseCost || 0).toLocaleString()}</td>
+                        <td>${(item.rate || 1).toLocaleString()}</td>
+                        <td>${(item.units || 0).toLocaleString(undefined, {minimumFractionDigits: 4})}</td>
+                        <td>$${(item.price || 0).toLocaleString(undefined, {minimumFractionDigits: 4})}</td>
                         <td>$${item.fee.toLocaleString()}</td>
                         <td>$${item.total.toLocaleString()}</td>
                         <td style="font-weight: bold; color: var(--primary-color);">${(item.remainingUnits || 0).toLocaleString(undefined, {minimumFractionDigits: 4})}</td>
@@ -2048,6 +2050,8 @@
                             <thead>
                                 <tr>
                                     <th>日期</th>
+                                    <th>成本</th>
+                                    <th>匯率</th>
                                     <th>單位數</th>
                                     <th>淨值</th>
                                     <th>手續費</th>
