@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>我的專屬股市管理系統</title>
-    <!-- 引入 Supabase SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --primary-color: #2b6cb0;
@@ -331,38 +329,31 @@
         
         .page { display: none; }
         .page.active { display: block; }
-
-        /* 登入區塊樣式 */
-        #auth-container {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #1a202c; color: white; display: flex;
-            justify-content: center; align-items: center; z-index: 2000;
-        }
-        .auth-box { background: white; padding: 40px; border-radius: 8px; width: 350px; color: #2d3748; text-align: center; }
-        .auth-box h2 { margin-top: 0; }
-        .auth-box input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #cbd5e0; border-radius: 4px; box-sizing: border-box; }
-        .auth-btn { width: 100%; padding: 10px; background: var(--primary-color); color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; }
-        .logout-btn { background: #e53e3e; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; margin-left: auto; }
     </style>
+    <style>
+        /* 新增資料彈跳視窗的兩層結構 */
+        .category-section {
+            display: none;
+            margin-top: 15px;
+            padding-top: 15px;
+        }
+        .category-section.active {
+            display: block;
+        }
+        .type-selector-level-2 { margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
+    </style>
+    <style>
+        /* 統一 Modal 內部的表單外觀，避免看起來像斷掉的表格 */
+        #modal-forms-container { border-top: 1px solid #e2e8f0; margin-top: 15px; }
+    </style>
+
 </head>
 <body>
-
-<!-- 登入介面 -->
-<div id="auth-container">
-    <div class="auth-box">
-        <h2>系統登入</h2>
-        <input type="email" id="auth-email" placeholder="電子郵件">
-        <input type="password" id="auth-password" placeholder="密碼">
-        <button class="auth-btn" onclick="handleAuth('login')">登入</button>
-        <button class="auth-btn" style="background: #718096;" onclick="handleAuth('signup')">註冊新帳號</button>
-    </div>
-</div>
 
 <!-- 頂部導覽列 -->
 <header class="top-header">
     <div class="header-toggle" onclick="toggleSidebar()">☰</div>
     <div class="header-brand">投資管理系統</div>
-    <button class="logout-btn" onclick="handleLogout()">登出</button>
 </header>
 
 <!-- 左側固定選單 -->
@@ -637,137 +628,159 @@
             <button class="close-btn" onclick="closeModal()">&times;</button>
         </div>
 
-        <div class="type-selector">
-            <button class="type-btn active" id="btn-type-saving" onclick="selectFormType('saving')">存錢</button>
-            <button class="type-btn" id="btn-type-buy" onclick="selectFormType('buy')">買入</button>
-            <button class="type-btn" id="btn-type-sell" onclick="selectFormType('sell')">賣出</button>
-            <button class="type-btn" id="btn-type-fund-buy" onclick="selectFormType('fund-buy')">基金買入</button>
-            <button class="type-btn" id="btn-type-fund-sell" onclick="selectFormType('fund-sell')">基金賣出</button>
-            <button class="type-btn" id="btn-type-dividend" onclick="selectFormType('dividend')">配股/息</button>
+        <!-- Level 1 Selector -->
+        <div class="type-selector" id="type-selector-level-1">
+            <button class="type-btn active" data-category="saving" onclick="selectMainCategory(this, 'saving')">存錢</button>
+            <button class="type-btn" data-category="stock" onclick="selectMainCategory(this, 'stock')">股票</button>
+            <button class="type-btn" data-category="fund" onclick="selectMainCategory(this, 'fund')">基金</button>
         </div>
 
-        <form id="form-saving" class="form-form active" onsubmit="handleFormSubmit(event, 'saving')">
-            <div class="form-group">
-                <label>日期</label>
-                <input type="date" id="save-date" required>
+        <div id="modal-forms-container">
+            <!-- Saving Section -->
+            <div id="saving-section" class="category-section active">
+                <form id="form-saving" class="form-form active" onsubmit="handleFormSubmit(event, 'saving')">
+                    <div class="form-group">
+                        <label>日期</label>
+                        <input type="date" id="save-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>項目</label>
+                        <select id="save-item" required>
+                            <option value="現金">現金</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>金額</label>
+                        <input type="number" id="save-amount" placeholder="請輸入金額" required>
+                    </div>
+                    <div class="form-group">
+                        <label>存入（選填）</label>
+                        <div id="save-bank-wrapper"></div>
+                    </div>
+                    <button type="submit" class="submit-btn">儲存資料</button>
+                </form>
             </div>
-            <div class="form-group">
-                <label>項目</label>
-                <select id="save-item" required>
-                    <option value="現金">現金</option>
-                    <option value="配息">配息</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>金額</label>
-                <input type="number" id="save-amount" placeholder="請輸入金額" required>
-            </div>
-            <div class="form-group">
-                <label>存入（選填）</label>
-                <div id="save-bank-wrapper"></div>
-            </div>
-            <button type="submit" class="submit-btn">儲存資料</button>
-        </form>
 
-        <!-- 買入與賣出表單保留原樣 -->
-        <form id="form-buy" class="form-form" onsubmit="handleFormSubmit(event, 'buy')">
-            <div class="form-group"><label>日期</label><input type="date" id="buy-date" required></div>
-            <div class="form-group"><label>性質</label><select id="buy-type" required><option value="個股">個股</option><option value="ETF">ETF</option></select></div>
-            <div class="form-group">
-                <label>公司</label>
-                <div id="buy-company-wrapper"></div>
-            </div>
-            <div class="form-group"><label>股數</label><input type="number" id="buy-shares" oninput="calcBuyTotal()" placeholder="0" required></div>
-            <div class="form-group"><label>成交價</label><input type="number" step="0.01" id="buy-price" oninput="calcBuyTotal()" placeholder="0.00" required></div>
-            <div class="form-group">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px;">
-                    <label style="margin-bottom: 0;">手續費</label>
-                    <label class="inline-checkbox"><input type="checkbox" id="buy-regular" onchange="handleBuyRegularToggle()"> 定期定額</label>
+            <!-- Stock Section -->
+            <div id="stock-section" class="category-section" style="display: none;">
+                <!-- Level 2 Selector for Stock -->
+                <div class="type-selector type-selector-level-2" id="type-selector-level-2-stock">
+                    <button class="type-btn active" data-form-type="buy" onclick="selectSubCategory(this, 'buy')">股票買入</button>
+                    <button class="type-btn" data-form-type="sell" onclick="selectSubCategory(this, 'sell')">股票賣出</button>
+                    <button class="type-btn" data-form-type="stock-dividend" onclick="selectSubCategory(this, 'stock-dividend')">配股/息</button>
                 </div>
-                <input type="number" id="buy-fee" oninput="handleBuyFeeInput()" required>
-            </div>
-            <div class="form-group"><label>總成本 (可手動微調)</label><input type="number" id="buy-total"></div>
-            <button type="submit" class="submit-btn">儲存資料</button>
-        </form>
+                <form id="form-buy" class="form-form active" onsubmit="handleFormSubmit(event, 'buy')">
+                    <div class="form-group"><label>日期</label><input type="date" id="buy-date" required></div>
+                    <div class="form-group"><label>性質</label><select id="buy-type" required><option value="個股">個股</option><option value="ETF">ETF</option></select></div>
+                    <div class="form-group">
+                        <label>公司</label>
+                        <div id="buy-company-wrapper"></div>
+                    </div>
+                    <div class="form-group"><label>股數</label><input type="number" id="buy-shares" oninput="calcBuyTotal()" placeholder="0" required></div>
+                    <div class="form-group"><label>成交價</label><input type="number" step="0.01" id="buy-price" oninput="calcBuyTotal()" placeholder="0.00" required></div>
+                    <div class="form-group">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px;">
+                            <label style="margin-bottom: 0;">手續費</label>
+                            <label class="inline-checkbox"><input type="checkbox" id="buy-regular" onchange="handleBuyRegularToggle()"> 定期定額</label>
+                        </div>
+                        <input type="number" id="buy-fee" oninput="handleBuyFeeInput()" required>
+                    </div>
+                    <div class="form-group"><label>總成本 (可手動微調)</label><input type="number" id="buy-total"></div>
+                    <button type="submit" class="submit-btn">儲存資料</button>
+                </form>
 
-        <form id="form-sell" class="form-form" onsubmit="handleFormSubmit(event, 'sell')">
-            <div class="form-group"><label>日期</label><input type="date" id="sell-date" required></div>
-            <div class="form-group"><label>性質</label><select id="sell-type" onchange="handleSellTypeChange()" required><option value="個股">個股</option><option value="ETF">ETF</option></select></div>
-            <div class="form-group">
-                <label>公司</label>
-                <div id="sell-company-wrapper"></div>
+                <form id="form-sell" class="form-form" onsubmit="handleFormSubmit(event, 'sell')">
+                    <div class="form-group"><label>日期</label><input type="date" id="sell-date" required></div>
+                    <div class="form-group"><label>性質</label><select id="sell-type" onchange="handleSellTypeChange()" required><option value="個股">個股</option><option value="ETF">ETF</option></select></div>
+                    <div class="form-group">
+                        <label>公司</label>
+                        <div id="sell-company-wrapper"></div>
+                    </div>
+                    <div class="form-group"><label>股數</label><input type="number" id="sell-shares" oninput="calcSellTotal()" placeholder="0" required></div>
+                    <div class="form-group"><label>成交價</label><input type="number" step="0.01" id="sell-price" oninput="calcSellTotal()" placeholder="0.00" required></div>
+                    <div class="form-group"><label>手續費</label><input type="number" id="sell-fee" oninput="handleSellFeeInput()" required></div>
+                    <div class="form-group"><label>證交稅</label><input type="number" id="sell-tax" oninput="handleSellTaxInput()" required></div>
+                    <div class="form-group"><label>實收金額 (可手動微調)</label><input type="number" id="sell-total"></div>
+                    <button type="submit" class="submit-btn">儲存資料</button>
+                </form>
+                <div id="stock-dividend-form-anchor"></div>
             </div>
-            <div class="form-group"><label>股數</label><input type="number" id="sell-shares" oninput="calcSellTotal()" placeholder="0" required></div>
-            <div class="form-group"><label>成交價</label><input type="number" step="0.01" id="sell-price" oninput="calcSellTotal()" placeholder="0.00" required></div>
-            <div class="form-group"><label>手續費</label><input type="number" id="sell-fee" oninput="handleSellFeeInput()" required></div>
-            <div class="form-group"><label>證交稅</label><input type="number" id="sell-tax" oninput="handleSellTaxInput()" required></div>
-            <div class="form-group"><label>實收金額 (可手動微調)</label><input type="number" id="sell-total"></div>
-            <button type="submit" class="submit-btn">儲存資料</button>
-        </form>
 
-        <form id="form-fund-buy" class="form-form" onsubmit="handleFormSubmit(event, 'fund-buy')">
-            <div class="form-group"><label>日期</label><input type="date" id="fund-buy-date" required></div>
-            <div class="form-group">
-                <label>基金名稱</label>
-                <div id="fund-buy-name-wrapper"></div>
-            </div>
-            <div class="form-group"><label>成本</label><input type="number" id="fund-buy-base-cost" oninput="calcFundBuyTotal()" placeholder="0" required></div>
-            <div class="form-group"><label>匯率</label><input type="number" step="0.0001" id="fund-buy-rate" value="1" required></div>
-            <div class="form-group"><label>申購淨值</label><input type="number" step="0.0001" id="fund-buy-price" oninput="calcFundBuyTotal()" placeholder="0.0000" required></div>
-            <div class="form-group"><label>單位數</label><input type="number" step="0.0001" id="fund-buy-units" required></div>
-            <div class="form-group"><label>手續費</label><input type="number" id="fund-buy-fee" oninput="calcFundBuyTotal()" value="0"></div>
-            <div class="form-group"><label>總成本</label><input type="number" id="fund-buy-total" readonly></div>
-            <button type="submit" class="submit-btn">儲存資料</button>
-        </form>
+            <!-- Fund Section -->
+            <div id="fund-section" class="category-section" style="display: none;">
+                <!-- Level 2 Selector for Fund -->
+                <div class="type-selector type-selector-level-2" id="type-selector-level-2-fund">
+                    <button class="type-btn active" data-form-type="fund-buy" onclick="selectSubCategory(this, 'fund-buy')">基金買入</button>
+                    <button class="type-btn" data-form-type="fund-sell" onclick="selectSubCategory(this, 'fund-sell')">基金賣出</button>
+                    <button class="type-btn" data-form-type="fund-dividend" onclick="selectSubCategory(this, 'fund-dividend')">配息</button>
+                </div>
+                <form id="form-fund-buy" class="form-form active" onsubmit="handleFormSubmit(event, 'fund-buy')">
+                    <div class="form-group"><label>日期</label><input type="date" id="fund-buy-date" required></div>
+                    <div class="form-group">
+                        <label>基金名稱</label>
+                        <div id="fund-buy-name-wrapper"></div>
+                    </div>
+                    <div class="form-group"><label>成本</label><input type="number" id="fund-buy-base-cost" oninput="calcFundBuyTotal()" placeholder="0" required></div>
+                    <div class="form-group"><label>匯率</label><input type="number" step="0.0001" id="fund-buy-rate" value="1" required></div>
+                    <div class="form-group"><label>申購淨值</label><input type="number" step="0.0001" id="fund-buy-price" oninput="calcFundBuyTotal()" placeholder="0.0000" required></div>
+                    <div class="form-group"><label>單位數</label><input type="number" step="0.0001" id="fund-buy-units" required></div>
+                    <div class="form-group"><label>手續費</label><input type="number" id="fund-buy-fee" oninput="calcFundBuyTotal()" value="0"></div>
+                    <div class="form-group"><label>總成本</label><input type="number" id="fund-buy-total" readonly></div>
+                    <button type="submit" class="submit-btn">儲存資料</button>
+                </form>
 
-        <form id="form-fund-sell" class="form-form" onsubmit="handleFormSubmit(event, 'fund-sell')">
-            <div class="form-group"><label>日期</label><input type="date" id="fund-sell-date" required></div>
-            <div class="form-group">
-                <label>基金名稱</label>
-                <div id="fund-sell-name-wrapper"></div>
+                <form id="form-fund-sell" class="form-form" onsubmit="handleFormSubmit(event, 'fund-sell')">
+                    <div class="form-group"><label>日期</label><input type="date" id="fund-sell-date" required></div>
+                    <div class="form-group">
+                        <label>基金名稱</label>
+                        <div id="fund-sell-name-wrapper"></div>
+                    </div>
+                    <div class="form-group"><label>單位數</label><input type="number" step="0.0001" id="fund-sell-units" oninput="calcFundSellTotal()" placeholder="0.0000" required></div>
+                    <div class="form-group"><label>淨值</label><input type="number" step="0.0001" id="fund-sell-price" oninput="calcFundSellTotal()" placeholder="0.0000" required></div>
+                    <div class="form-group"><label>手續費</label><input type="number" id="fund-sell-fee" oninput="calcFundSellTotal()" value="0"></div>
+                    <div class="form-group"><label>實收金額 (可手動微調)</label><input type="number" id="fund-sell-total" ></div>
+                    <button type="submit" class="submit-btn">儲存資料</button>
+                </form>
+                <div id="fund-dividend-form-anchor"></div>
             </div>
-            <div class="form-group"><label>單位數</label><input type="number" step="0.0001" id="fund-sell-units" oninput="calcFundSellTotal()" placeholder="0.0000" required></div>
-            <div class="form-group"><label>淨值</label><input type="number" step="0.0001" id="fund-sell-price" oninput="calcFundSellTotal()" placeholder="0.0000" required></div>
-            <div class="form-group"><label>手續費</label><input type="number" id="fund-sell-fee" oninput="calcFundSellTotal()" value="0"></div>
-            <div class="form-group"><label>實收金額 (可手動微調)</label><input type="number" id="fund-sell-total" ></div>
-            <button type="submit" class="submit-btn">儲存資料</button>
-        </form>
 
-        <form id="form-dividend" class="form-form" onsubmit="handleFormSubmit(event, 'dividend')">
-            <div class="form-group"><label>日期</label><input type="date" id="div-date" required></div>
-            <div class="form-group">
-                <label>項目</label>
-                <select id="div-item" onchange="toggleDividendFields()" required>
-                    <option value="配股">配股</option>
-                    <option value="配息">配息</option>
-                </select>
-            </div>
-            <!-- 配股欄位 -->
-            <div id="div-stock-fields">
-                <div class="form-group"><label>公司</label><div id="div-stock-company-wrapper"></div></div>
-                <div class="form-group"><label>股數</label><input type="number" id="div-stock-shares" placeholder="請輸入配股股數"></div>
-            </div>
-            <!-- 配息欄位 -->
-            <div id="div-cash-fields" style="display: none;">
-                <div class="form-group">
-                    <label>類別</label>
-                    <select id="div-cash-cat" onchange="toggleDividendNameSelector()">
-                        <option value="股票/ETF">股票/ETF</option>
-                        <option value="基金">基金</option>
+            <!-- 配股/息表單：這段現在會被 JavaScript 動態掛載到對應位置 -->
+            <form id="form-dividend" class="form-form" onsubmit="handleFormSubmit(event, 'dividend')">
+                <div class="form-group"><label>日期</label><input type="date" id="div-date" required></div>
+                <div class="form-group" id="div-item-group">
+                    <label>項目</label>
+                    <select id="div-item" onchange="toggleDividendFields()" required>
+                        <option value="配股">配股</option>
+                        <option value="配息">配息</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>公司/基金名稱</label>
-                    <div id="div-cash-name-wrapper"></div>
+                <!-- 配股欄位 -->
+                <div id="div-stock-fields">
+                    <div class="form-group"><label>公司</label><div id="div-stock-company-wrapper"></div></div>
+                    <div class="form-group"><label>股數</label><input type="number" id="div-stock-shares" placeholder="請輸入配股股數"></div>
                 </div>
-                <div class="form-group">
-                    <label>存入銀行（選填）</label>
-                    <div id="div-cash-bank-wrapper"></div>
+                <!-- 配息欄位 -->
+                <div id="div-cash-fields" style="display: none;">
+                    <div class="form-group" id="div-cash-cat-group">
+                        <label>類別</label>
+                        <select id="div-cash-cat" onchange="toggleDividendNameSelector()">
+                            <option value="股票/ETF">股票/ETF</option>
+                            <option value="基金">基金</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>公司/基金名稱</label>
+                        <div id="div-cash-name-wrapper"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>存入銀行（選填）</label>
+                        <div id="div-cash-bank-wrapper"></div>
+                    </div>
+                    <div class="form-group"><label>金額</label><input type="number" id="div-cash-amount" placeholder="請輸入配息金額"></div>
                 </div>
-                <div class="form-group"><label>金額</label><input type="number" id="div-cash-amount" placeholder="請輸入配息金額"></div>
-            </div>
-            <button type="submit" class="submit-btn">儲存資料</button>
-        </form>
+                <button type="submit" class="submit-btn">儲存資料</button>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -856,105 +869,52 @@
     let sellFeeManual = false;
     let sellTaxManual = false;
 
-    // 初始化 Supabase 
-    const SUPABASE_URL = 'https://ivlbqcmkpwtxyqbuhkxw.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_Mod-w4Q7kTtVlMT3bT0EfQ_zFietyJk';
-    // 修正變數名稱避免衝突
-    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    window.onload = async function() {
-        // 1. 監聽登入狀態切換介面
-        _supabase.auth.onAuthStateChange((event, session) => {
-            if (session) {
-                document.getElementById('auth-container').style.display = 'none';
-                initApp();
-            } else {
-                document.getElementById('auth-container').style.display = 'flex';
-            }
-        });
-    };
-
-    // 封裝初始化邏輯，只有在登入後才執行
-    async function initApp() {
+    window.onload = function() {
         const savedTarget = localStorage.getItem('my_stock_saving_target');
-        if (savedTarget !== null) document.getElementById('target-input').value = savedTarget;
+        if (savedTarget !== null) {
+            document.getElementById('target-input').value = savedTarget;
+        }
         
-        await loadDataFromSupabase();
+        loadDataFromStorage(); 
         resetDates();
         sortAllDataByDate();
         refreshAllViews();
-        switchMainSection('ledger');
-        
+        switchMainSection('ledger'); // 依照要求，預設顯示第二個分頁：股市記帳工具
+
+        // 初始化分頁到「存錢記錄」
         const initialParentTab = document.querySelector('.tabs-level-1 .tab[data-target-group="saving"]');
-        if (initialParentTab) switchParentTab(initialParentTab, 'saving');
-    }
-
-    // 處理登入與註冊邏輯
-    async function handleAuth(type) {
-        const email = document.getElementById('auth-email').value;
-        const password = document.getElementById('auth-password').value;
-        if (!email || !password) return alert("請輸入電子郵件與密碼");
-
-        if (type === 'login') {
-            const { error } = await _supabase.auth.signInWithPassword({ email, password });
-            if (error) alert("登入失敗: " + error.message);
-        } else {
-            const { error } = await _supabase.auth.signUp({ email, password });
-            if (error) alert("註冊失敗: " + error.message);
-            else alert("註冊成功！請檢查信箱驗證或直接嘗試登入。");
+        if (initialParentTab) {
+            switchParentTab(initialParentTab, 'saving');
         }
-    }
-
-    // 登出邏輯
-    async function handleLogout() {
-        await _supabase.auth.signOut();
-        location.reload(); // 重新整理頁面以重置所有狀態
-    }
+    };
 
     // 側邊欄切換函式
     function toggleSidebar() {
         document.body.classList.toggle('sidebar-collapsed');
     }
 
-    // 從 Supabase 讀取並分流資料
-    async function loadDataFromSupabase() {
-        try {
-            const { data: cashData } = await _supabase.from('cash_ledger').select('*');
-            const { data: stockData } = await _supabase.from('stock_ledger').select('*');
-            const { data: fundData } = await _supabase.from('fund_ledger').select('*');
-
-            // 將 3 張表的資料分流回原本的 9 個分類陣列，確保後續邏輯不動
-            db.savings = cashData.filter(r => r.type === 'saving');
-            db.initAmounts = cashData.filter(r => r.type === 'initial');
-            db.cashDividends = cashData.filter(r => r.type === 'dividend');
-
-            db.buys = stockData.filter(r => r.action === 'buy');
-            db.sells = stockData.filter(r => r.action === 'sell');
-            db.initStocks = stockData.filter(r => r.action === 'initial');
-            db.stockDividends = stockData.filter(r => r.action === 'bonus');
-
-            db.fundBuys = fundData.filter(r => r.action === 'buy');
-            db.fundSells = fundData.filter(r => r.action === 'sell');
-        } catch (err) {
-            console.error("資料讀取失敗:", err);
+    function loadDataFromStorage() {
+        const storedDb = localStorage.getItem('my_stock_ledger_db');
+        if (storedDb) {
+            try {
+                db = JSON.parse(storedDb);
+                if (!db.savings) db.savings = [];
+                if (!db.buys) db.buys = [];
+                if (!db.sells) db.sells = [];
+                if (!db.initAmounts) db.initAmounts = [];
+                if (!db.initStocks) db.initStocks = [];
+                if (!db.fundBuys) db.fundBuys = [];
+                if (!db.fundSells) db.fundSells = [];
+                if (!db.stockDividends) db.stockDividends = [];
+                if (!db.cashDividends) db.cashDividends = [];
+            } catch (e) {
+                console.error("儲存的資料格式有誤，已重置", e);
+            }
         }
     }
 
-    // 統一儲存函式 (改為依據類型儲存至對應表格)
-    async function saveEntryToSupabase(tableName, record) {
-        const { error } = await _supabase.from(tableName).upsert(record);
-        if (error) {
-            console.error(`儲存至 ${tableName} 失敗:`, error);
-            alert("儲存失敗: " + error.message);
-        }
-    }
-
-    async function deleteEntryFromSupabase(tableName, id) {
-        const { error } = await _supabase.from(tableName).delete().eq('id', id);
-        if (error) {
-            console.error(`從 ${tableName} 刪除失敗:`, error);
-            alert("刪除失敗: " + error.message);
-        }
+    function saveDataToStorage() {
+        localStorage.setItem('my_stock_ledger_db', JSON.stringify(db));
     }
 
     // 切換左側大分頁系統
@@ -1289,14 +1249,13 @@
         document.getElementById('initModal').style.display = 'none';
     }
 
-    async function handleInitAmountSubmit(e) {
+    function handleInitAmountSubmit(e) {
         e.preventDefault();
         const data = {
             id: editingId ? editingId : Date.now(),
             date: document.getElementById('init-amt-date').value,
             bank: document.getElementById('init-amt-bank').value,
-            amount: parseInt(document.getElementById('init-amt-value').value) || 0,
-            type: 'initial' // 用於分流
+            amount: parseInt(document.getElementById('init-amt-value').value) || 0
         };
 
         if (editingId && editingType === 'initAmount') {
@@ -1306,13 +1265,13 @@
             db.initAmounts.push(data);
         }
 
-        await saveEntryToSupabase('cash_ledger', data);
+        saveDataToStorage();
         closeInitModal();
         sortAllDataByDate();
         refreshAllViews();
     }
 
-    async function handleInitStockSubmit(e) {
+    function handleInitStockSubmit(e) {
         e.preventDefault();
         const shares = parseFloat(document.getElementById('init-stk-shares').value) || 0;
         const costPrice = parseFloat(document.getElementById('init-stk-cost-price').value) || 0;
@@ -1321,15 +1280,13 @@
         const data = {
             id: editingId ? editingId : Date.now(),
             date: document.getElementById('init-stk-date').value,
-            asset_type: document.getElementById('init-stk-type').value, // 資料庫欄位名 asset_type
+            type: document.getElementById('init-stk-type').value,
             company: document.getElementById('init-stk-company').value,
             shares: shares,
-            // 為了讓前端邏輯不動，這裡保留舊有的 key
-            initialShares: shares,
-            cost_price: costPrice,
+            initialShares: shares, // 鎖定初始總股數
+            costPrice: costPrice,
             total: total, // 儲存使用者輸入(或微調後)的總成本
-            current_price: costPrice,
-            action: 'initial' // 用於分流
+            currentPrice: costPrice
         };
         // 根據最終確定的總成本計算固定調整單價
         data.fixedAdjustedPrice = (data.total / data.initialShares).toFixed(2);
@@ -1341,7 +1298,7 @@
             db.initStocks.push(data);
         }
 
-        await saveEntryToSupabase('stock_ledger', data);
+        saveDataToStorage();
         closeInitModal();
         sortAllDataByDate();
         refreshAllViews();
@@ -1375,16 +1332,11 @@
         editingType = 'initStock';
     }
 
-    async function deleteInitRecord(type, id) {
+    function deleteInitRecord(type, id) {
         if (confirm('確定要刪除這筆初始開帳資料嗎？')) {
-            if (type === 'amount') {
-                db.initAmounts = db.initAmounts.filter(item => item.id !== id);
-                await deleteEntryFromSupabase('cash_ledger', id);
-            }
-            if (type === 'stock') {
-                db.initStocks = db.initStocks.filter(item => item.id !== id);
-                await deleteEntryFromSupabase('stock_ledger', id);
-            }
+            if (type === 'amount') db.initAmounts = db.initAmounts.filter(item => item.id !== id);
+            if (type === 'stock') db.initStocks = db.initStocks.filter(item => item.id !== id);
+            saveDataToStorage();
             refreshAllViews();
         }
     }
@@ -1484,7 +1436,7 @@
         document.getElementById('div-cash-cat').value = '股票/ETF';
         document.getElementById('div-cash-amount').value = '';
         populateNameSelector('div-cash-bank', getAllUniqueBanks(), ''); // Reset for cash dividend bank
-        toggleDividendFields();
+        // toggleDividendFields() will be called by selectSubCategory or selectMainCategory
 
         buyFeeManual = false; sellFeeManual = false; sellTaxManual = false;
     }
@@ -1493,43 +1445,169 @@
         document.getElementById('addModal').style.display = 'flex';
         resetDates();
         editingId = null; editingType = null;
-        selectFormType('saving');
+        selectMainCategory(document.querySelector('#type-selector-level-1 .type-btn[data-category="saving"]'), 'saving'); // Default to saving
     }
     
     function closeModal() {
         document.getElementById('addModal').style.display = 'none';
     }
 
-    function selectFormType(type) {
-        currentFormType = type;
-        document.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelectorAll('.form-form').forEach(form => form.classList.remove('active'));
-        document.getElementById(`btn-type-${type}`).classList.add('active');
-        document.getElementById(`form-${type}`).classList.add('active');
-        if (type === 'buy') calcBuyTotal();
-        else if (type === 'sell') calcSellTotal();
-        else if (type === 'fund-buy') calcFundBuyTotal();
-        else if (type === 'fund-sell') calcFundSellTotal();
-        else if (type === 'dividend') toggleDividendFields();
+    // This function is now deprecated or will be refactored into selectMainCategory and selectSubCategory
+    // For now, let's keep it as a placeholder or remove it if not needed.
+    // The new structure will use selectMainCategory and selectSubCategory
+    // function selectFormType(type) {
+    //     currentFormType = type;
+    //     document.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('active'));
+    //     document.querySelectorAll('.form-form').forEach(form => form.classList.remove('active'));
+    //     document.getElementById(`btn-type-${type}`).classList.add('active');
+    //     document.getElementById(`form-${type}`).classList.add('active');
+    //     if (type === 'buy') calcBuyTotal();
+    //     else if (type === 'sell') calcSellTotal();
+    //     else if (type === 'fund-buy') calcFundBuyTotal();
+    //     else if (type === 'fund-sell') calcFundSellTotal();
+    //     else if (type === 'dividend') toggleDividendFields();
         
-        // 切換時重新刷新名稱選擇器
-        if (type === 'saving') populateNameSelector('save-bank', getAllUniqueBanks(), '');
-        else if (type === 'buy') populateNameSelector('buy-company', getAllUniqueStockCompanies(), '');
-        else if (type === 'sell') populateNameSelector('sell-company', getAllUniqueStockCompanies(), '');
-        else if (type === 'fund-buy') populateNameSelector('fund-buy-name', getAllUniqueFundNames(), '');
-        else if (type === 'fund-sell') populateNameSelector('fund-sell-name', getAllUniqueFundNames(), '');
-        else if (type === 'dividend') { toggleDividendFields(); populateNameSelector('div-cash-bank', getAllUniqueBanks(), ''); }
+    //     // 切換時重新刷新名稱選擇器
+    //     if (type === 'saving') populateNameSelector('save-bank', getAllUniqueBanks(), '');
+    //     else if (type === 'buy') populateNameSelector('buy-company', getAllUniqueStockCompanies(), '');
+    //     else if (type === 'sell') populateNameSelector('sell-company', getAllUniqueStockCompanies(), '');
+    //     else if (type === 'fund-buy') populateNameSelector('fund-buy-name', getAllUniqueFundNames(), '');
+    //     else if (type === 'fund-sell') populateNameSelector('fund-sell-name', getAllUniqueFundNames(), '');
+    //     else if (type === 'dividend') { toggleDividendFields(); populateNameSelector('div-cash-bank', getAllUniqueBanks(), ''); }
+    // }
+
+    function selectMainCategory(element, category) {
+        document.querySelectorAll('#type-selector-level-1 .type-btn').forEach(btn => btn.classList.remove('active'));
+        element.classList.add('active');
+
+        // 隱藏所有分類區塊並移除 active 狀態
+        document.querySelectorAll('.category-section').forEach(section => {
+            section.style.display = 'none';
+            section.classList.remove('active');
+        });
+        // 清除所有表單的 active 狀態
+        document.querySelectorAll('.form-form').forEach(form => form.classList.remove('active'));
+
+        currentFormType = category; // Update currentFormType to reflect main category
+
+        if (category === 'saving') {
+            const section = document.getElementById('saving-section');
+            section.style.display = 'block';
+            section.classList.add('active');
+            document.getElementById('form-saving').classList.add('active');
+            populateNameSelector('save-bank', getAllUniqueBanks(), '');
+        } else if (category === 'stock') {
+            const section = document.getElementById('stock-section');
+            section.style.display = 'block';
+            section.classList.add('active');
+            const firstSubBtn = document.querySelector('#type-selector-level-2-stock .type-btn');
+            if (firstSubBtn) {
+                selectSubCategory(firstSubBtn, firstSubBtn.dataset.formType);
+            }
+        } else if (category === 'fund') {
+            const section = document.getElementById('fund-section');
+            section.style.display = 'block';
+            section.classList.add('active');
+            const firstSubBtn = document.querySelector('#type-selector-level-2-fund .type-btn');
+            if (firstSubBtn) {
+                selectSubCategory(firstSubBtn, firstSubBtn.dataset.formType);
+            }
+        }
+    }
+
+    function selectSubCategory(element, formType) {
+        // Deactivate all sibling buttons in the same level-2 selector
+        element.parentNode.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('active'));
+        element.classList.add('active');
+
+        // 徹底清除所有表單的 active 狀態，防止切換子類別時舊表單殘留（解決重複欄位問題）
+        document.querySelectorAll('.form-form').forEach(form => form.classList.remove('active'));
+
+        currentFormType = formType; // Update currentFormType to reflect specific form
+
+        // 動態移動配股/息表單到當前主類別下，確保視覺結構連貫
+        const divForm = document.getElementById('form-dividend');
+        if (formType === 'stock-dividend') {
+            document.getElementById('stock-dividend-form-anchor').appendChild(divForm);
+        } else if (formType === 'fund-dividend') {
+            document.getElementById('fund-dividend-form-anchor').appendChild(divForm);
+        }
+
+        if (formType === 'buy') {
+            document.getElementById('form-buy').classList.add('active');
+            populateNameSelector('buy-company', getAllUniqueStockCompanies(), '');
+            calcBuyTotal();
+        } else if (formType === 'sell') {
+            document.getElementById('form-sell').classList.add('active');
+            populateNameSelector('sell-company', getAllUniqueStockCompanies(), '');
+            calcSellTotal();
+        } else if (formType === 'fund-buy') {
+            document.getElementById('form-fund-buy').classList.add('active');
+            populateNameSelector('fund-buy-name', getAllUniqueFundNames(), '');
+            calcFundBuyTotal();
+        } else if (formType === 'fund-sell') {
+            document.getElementById('form-fund-sell').classList.add('active');
+            populateNameSelector('fund-sell-name', getAllUniqueFundNames(), '');
+            calcFundSellTotal();
+        } else if (formType === 'stock-dividend') {
+            document.getElementById('form-dividend').classList.add('active');
+            document.getElementById('div-item-group').style.display = 'block'; // Show item selector
+            document.getElementById('div-cash-cat-group').style.display = 'block'; // Show cash category selector
+            document.getElementById('div-item').value = '配股'; // Default to stock bonus
+            document.getElementById('div-cash-cat').value = '股票/ETF'; // Default cash dividend to stock/ETF
+            toggleDividendFields(); // This will handle showing/hiding stock/cash fields and populating selectors
+        } else if (formType === 'fund-dividend') {
+            document.getElementById('form-dividend').classList.add('active');
+            document.getElementById('div-item-group').style.display = 'none'; // Hide item selector (always cash for fund)
+            document.getElementById('div-cash-cat-group').style.display = 'none'; // Hide cash category selector (always fund for fund)
+            document.getElementById('div-item').value = '配息'; // Force cash dividend
+            document.getElementById('div-cash-cat').value = '基金'; // Force fund category
+            toggleDividendFields(); // This will handle showing/hiding stock/cash fields and populating selectors
+        }
     }
 
     function toggleDividendFields() {
         const item = document.getElementById('div-item').value;
-        document.getElementById('div-stock-fields').style.display = (item === '配股' ? 'block' : 'none');
-        document.getElementById('div-cash-fields').style.display = (item === '配息' ? 'block' : 'none');
-        
-        if (item === '配股') {
-            populateNameSelector('div-stock-company', getAllUniqueStockCompanies(), '');
-        } else {
-            toggleDividendNameSelector();
+        const cashCat = document.getElementById('div-cash-cat').value;
+
+        // Reset visibility for all dividend-related fields
+        document.getElementById('div-stock-fields').style.display = 'none';
+        document.getElementById('div-cash-fields').style.display = 'none';
+
+        // Logic for 'stock-dividend' (from Stock -> 配股/息)
+        if (currentFormType === 'stock-dividend') {
+            document.getElementById('div-item-group').style.display = 'block'; // User can choose '配股' or '配息'
+            if (item === '配股') {
+                document.getElementById('div-stock-fields').style.display = 'block';
+                populateNameSelector('div-stock-company', getAllUniqueStockCompanies(), '');
+            } else { // item === '配息'
+                document.getElementById('div-cash-fields').style.display = 'block';
+                document.getElementById('div-cash-cat-group').style.display = 'none'; // Category is implicitly '股票/ETF'
+                populateNameSelector('div-cash-name', getAllUniqueStockCompanies(), '');
+                populateNameSelector('div-cash-bank', getAllUniqueBanks(), '');
+            }
+        }
+        // Logic for 'fund-dividend' (from Fund -> 配息)
+        else if (currentFormType === 'fund-dividend') {
+            document.getElementById('div-item-group').style.display = 'none'; // Always '配息'
+            document.getElementById('div-stock-fields').style.display = 'none'; // No stock bonus for funds
+            document.getElementById('div-cash-fields').style.display = 'block';
+            document.getElementById('div-cash-cat-group').style.display = 'none'; // Category is implicitly '基金'
+            populateNameSelector('div-cash-name', getAllUniqueFundNames(), '');
+            populateNameSelector('div-cash-bank', getAllUniqueBanks(), '');
+        }
+        // Fallback for editing existing dividend records (where currentFormType might not be set by modal flow)
+        else {
+            document.getElementById('div-item-group').style.display = 'block';
+            if (item === '配股') {
+                document.getElementById('div-stock-fields').style.display = 'block';
+                populateNameSelector('div-stock-company', getAllUniqueStockCompanies(), '');
+            } else { // item === '配息'
+                document.getElementById('div-cash-fields').style.display = 'block';
+                document.getElementById('div-cash-cat-group').style.display = 'block';
+                toggleDividendNameSelector(); // Let the cash category selector decide
+                populateNameSelector('div-cash-bank', getAllUniqueBanks(), '');
+            }
         }
     }
 
@@ -1706,33 +1784,17 @@
         document.getElementById('fund-sell-total').value = Math.floor((units * price) - fee);
     }
 
-    async function deleteRecord(type, id) {
+    function deleteRecord(type, id) {
         if (confirm('確定要刪除這筆資料嗎？')) {
-            let table = '';
-            if (type === 'saving') {
-                db.savings = db.savings.filter(item => item.id !== id);
-                table = 'cash_ledger';
-            } else if (type === 'buy') {
-                db.buys = db.buys.filter(item => item.id !== id);
-                table = 'stock_ledger';
-            } else if (type === 'sell') {
-                db.sells = db.sells.filter(item => item.id !== id);
-                table = 'stock_ledger';
-            } else if (type === 'fundBuy') {
-                db.fundBuys = db.fundBuys.filter(item => item.id !== id);
-                table = 'fund_ledger';
-            } else if (type === 'fundSell') {
-                db.fundSells = db.fundSells.filter(item => item.id !== id);
-                table = 'fund_ledger';
-            } else if (type === 'stockDiv') {
-                db.stockDividends = db.stockDividends.filter(item => item.id !== id);
-                table = 'stock_ledger';
-            } else if (type === 'cashDiv') {
-                db.cashDividends = db.cashDividends.filter(item => item.id !== id);
-                table = 'cash_ledger';
-            }
+            if (type === 'saving') db.savings = db.savings.filter(item => item.id !== id);
+            else if (type === 'buy') db.buys = db.buys.filter(item => item.id !== id);
+            else if (type === 'sell') db.sells = db.sells.filter(item => item.id !== id);
+            else if (type === 'fundBuy') db.fundBuys = db.fundBuys.filter(item => item.id !== id);
+            else if (type === 'fundSell') db.fundSells = db.fundSells.filter(item => item.id !== id);
+            else if (type === 'stockDiv') db.stockDividends = db.stockDividends.filter(item => item.id !== id);
+            else if (type === 'cashDiv') db.cashDividends = db.cashDividends.filter(item => item.id !== id);
             
-            if (table) await deleteEntryFromSupabase(table, id);
+            saveDataToStorage(); 
             refreshAllViews();
         }
     }
@@ -2275,20 +2337,17 @@
         profitEl.style.color = totalProfit >= 0 ? 'var(--danger-color)' : 'var(--success-color)';
     }
 
-    async function handleFormSubmit(event, type) {
+    function handleFormSubmit(event, type) {
         event.preventDefault();
-        let targetTable = '';
-
+        
         if (type === 'saving') {
             const data = {
                 id: editingId ? editingId : Date.now(),
                 date: document.getElementById('save-date').value,
-                category: document.getElementById('save-item').value, // 對應 SQL category
+                item: document.getElementById('save-item').value,
                 amount: parseInt(document.getElementById('save-amount').value) || 0,
-                bank: getNameFromSelector('save-bank'),
-                type: 'saving'
+                bank: getNameFromSelector('save-bank')
             };
-            targetTable = 'cash_ledger';
             if (editingId) {
                 const index = db.savings.findIndex(item => item.id === editingId);
                 db.savings[index] = data;
@@ -2304,12 +2363,11 @@
             const data = {
                 id: editingType === 'buy' && editingId ? editingId : Date.now(),
                 date: document.getElementById('buy-date').value,
-                asset_type: document.getElementById('buy-type').value, 
+                type: document.getElementById('buy-type').value, 
                 company: getNameFromSelector('buy-company'),
-                shares, price, fee, total,
-                action: 'buy'
+                shares, price, fee, total
             };
-            targetTable = 'stock_ledger';
+            
             if (editingType === 'buy' && editingId) {
                 const index = db.buys.findIndex(item => item.id === editingId);
                 if (index !== -1) {
@@ -2332,11 +2390,9 @@
                 date: document.getElementById('sell-date').value,
                 company: getNameFromSelector('sell-company'),
                 shares, price, fee, tax, total,
-                asset_type: document.getElementById('sell-type').value,
-                action: 'sell',
+                sellType: document.getElementById('sell-type').value,
                 profit: 0, performance: '0%', avgAdjustedBuyPrice: 0
             };
-            targetTable = 'stock_ledger';
             if (editingType === 'sell' && editingId) {
                 const index = db.sells.findIndex(item => item.id === editingId);
                 if (index !== -1) db.sells[index] = data;
@@ -2355,11 +2411,8 @@
                 id: editingType === 'fundBuy' && editingId ? editingId : Date.now(),
                 date: document.getElementById('fund-buy-date').value,
                 name: getNameFromSelector('fund-buy-name'),
-                base_cost: baseCost, 
-                rate, units, price, fee, total,
-                action: 'buy'
+                baseCost, rate, units, price, fee, total
             };
-            targetTable = 'fund_ledger';
             if (editingType === 'fundBuy' && editingId) {
                 const index = db.fundBuys.findIndex(item => item.id === editingId);
                 if (index !== -1) db.fundBuys[index] = data;
@@ -2376,10 +2429,8 @@
                 id: editingType === 'fundSell' && editingId ? editingId : Date.now(),
                 date: document.getElementById('fund-sell-date').value,
                 name: getNameFromSelector('fund-sell-name'),
-                units, price, fee, total,
-                action: 'sell'
+                units, price, fee, total
             };
-            targetTable = 'fund_ledger';
             if (editingType === 'fundSell' && editingId) {
                 const index = db.fundSells.findIndex(item => item.id === editingId);
                 if (index !== -1) db.fundSells[index] = data;
@@ -2393,10 +2444,8 @@
                     id: editingType === 'stockDiv' && editingId ? editingId : Date.now(),
                     date: document.getElementById('div-date').value,
                     company: getNameFromSelector('div-stock-company'),
-                    shares: parseFloat(document.getElementById('div-stock-shares').value) || 0,
-                    action: 'bonus'
+                    shares: parseFloat(document.getElementById('div-stock-shares').value) || 0
                 };
-                targetTable = 'stock_ledger';
                 if (editingType === 'stockDiv' && editingId) {
                     const idx = db.stockDividends.findIndex(i => i.id === editingId);
                     if (idx !== -1) db.stockDividends[idx] = data;
@@ -2410,10 +2459,8 @@
                     category: document.getElementById('div-cash-cat').value,
                     name: getNameFromSelector('div-cash-name'),
                     amount: parseInt(document.getElementById('div-cash-amount').value) || 0,
-                    bank: getNameFromSelector('div-cash-bank'),
-                    type: 'dividend'
+                    bank: getNameFromSelector('div-cash-bank') // Capture bank for cash dividend
                 };
-                targetTable = 'cash_ledger';
                 if (editingType === 'cashDiv' && editingId) {
                     const idx = db.cashDividends.findIndex(i => i.id === editingId);
                     if (idx !== -1) db.cashDividends[idx] = data;
@@ -2423,16 +2470,7 @@
             }
         }
 
-        // 取得剛剛處理好的 data 物件 (在對應的 if 區塊中定義的)
-        let finalData;
-        if (type === 'saving') finalData = db.savings.find(i => i.id === (editingId || data.id));
-        else if (type === 'buy') finalData = db.buys[db.buys.length-1]; 
-        // ... 這裡可以寫得更嚴謹，但為了示範簡潔，我們確保 targetTable 有值就upsert
-        
-        // 自動抓取正確的資料並上傳
-        const lastAdded = (type === 'dividend') ? (document.getElementById('div-item').value === '配股' ? db.stockDividends : db.cashDividends) : db[type === 'fund-buy' ? 'fundBuys' : type === 'fund-sell' ? 'fundSells' : type + 's'];
-        if (targetTable) await saveEntryToSupabase(targetTable, lastAdded[lastAdded.length-1]);
-
+        saveDataToStorage(); 
         closeModal();
         sortAllDataByDate();
         refreshAllViews();
@@ -2441,7 +2479,7 @@
     function editSaving(id) {
         const data = db.savings.find(item => item.id === id);
         if (!data) return;
-        openModal(); selectFormType('saving');
+        openModal(); selectMainCategory(document.querySelector('#type-selector-level-1 .type-btn[data-category="saving"]'), 'saving');
         document.getElementById('save-date').value = data.date;
         document.getElementById('save-item').value = data.item;
         document.getElementById('save-amount').value = data.amount;
@@ -2452,7 +2490,7 @@
     function editBuy(id) {
         const data = db.buys.find(item => item.id === id);
         if (!data) return;
-        openModal(); selectFormType('buy');
+        openModal(); selectMainCategory(document.querySelector('#type-selector-level-1 .type-btn[data-category="stock"]'), 'stock'); selectSubCategory(document.querySelector('#type-selector-level-2-stock .type-btn[data-form-type="buy"]'), 'buy');
         document.getElementById('buy-date').value = data.date;
         document.getElementById('buy-type').value = data.type || '個股';
         populateNameSelector('buy-company', getAllUniqueStockCompanies(), data.company);
@@ -2469,7 +2507,7 @@
     function editSell(id) {
         const data = db.sells.find(item => item.id === id);
         if (!data) return;
-        openModal(); selectFormType('sell');
+        openModal(); selectMainCategory(document.querySelector('#type-selector-level-1 .type-btn[data-category="stock"]'), 'stock'); selectSubCategory(document.querySelector('#type-selector-level-2-stock .type-btn[data-form-type="sell"]'), 'sell');
         document.getElementById('sell-date').value = data.date;
         document.getElementById('sell-type').value = data.sellType || '個股';
         populateNameSelector('sell-company', getAllUniqueStockCompanies(), data.company);
@@ -2485,7 +2523,7 @@
     function editFundBuy(id) {
         const data = db.fundBuys.find(item => item.id === id);
         if (!data) return;
-        openModal(); selectFormType('fund-buy');
+        openModal(); selectMainCategory(document.querySelector('#type-selector-level-1 .type-btn[data-category="fund"]'), 'fund'); selectSubCategory(document.querySelector('#type-selector-level-2-fund .type-btn[data-form-type="fund-buy"]'), 'fund-buy');
         document.getElementById('fund-buy-date').value = data.date;
         populateNameSelector('fund-buy-name', getAllUniqueFundNames(), data.name);
         document.getElementById('fund-buy-base-cost').value = data.baseCost || (data.total - (data.fee || 0));
@@ -2500,7 +2538,7 @@
     function editFundSell(id) {
         const data = db.fundSells.find(item => item.id === id);
         if (!data) return;
-        openModal(); selectFormType('fund-sell');
+        openModal(); selectMainCategory(document.querySelector('#type-selector-level-1 .type-btn[data-category="fund"]'), 'fund'); selectSubCategory(document.querySelector('#type-selector-level-2-fund .type-btn[data-form-type="fund-sell"]'), 'fund-sell');
         document.getElementById('fund-sell-date').value = data.date;
         populateNameSelector('fund-sell-name', getAllUniqueFundNames(), data.name);
         document.getElementById('fund-sell-units').value = data.units;
@@ -2513,10 +2551,10 @@
     function editStockDiv(id) {
         const data = db.stockDividends.find(i => i.id === id);
         if (!data) return;
-        openModal(); selectFormType('dividend');
+        openModal(); selectMainCategory(document.querySelector('#type-selector-level-1 .type-btn[data-category="stock"]'), 'stock'); selectSubCategory(document.querySelector('#type-selector-level-2-stock .type-btn[data-form-type="stock-dividend"]'), 'stock-dividend');
         document.getElementById('div-date').value = data.date;
         document.getElementById('div-item').value = '配股';
-        toggleDividendFields();
+        // toggleDividendFields() will be called by selectSubCategory
         populateNameSelector('div-stock-company', getAllUniqueStockCompanies(), data.company);
         document.getElementById('div-stock-shares').value = data.shares;
         editingId = id; editingType = 'stockDiv';
@@ -2525,10 +2563,10 @@
     function editCashDiv(id) {
         const data = db.cashDividends.find(i => i.id === id);
         if (!data) return;
-        openModal(); selectFormType('dividend');
+        openModal(); selectMainCategory(document.querySelector('#type-selector-level-1 .type-btn[data-category="fund"]'), 'fund'); selectSubCategory(document.querySelector('#type-selector-level-2-fund .type-btn[data-form-type="fund-dividend"]'), 'fund-dividend');
         document.getElementById('div-date').value = data.date;
         document.getElementById('div-item').value = '配息';
-        toggleDividendFields();
+        // toggleDividendFields() will be called by selectSubCategory
         document.getElementById('div-cash-cat').value = data.category;
         populateNameSelector('div-cash-name', (data.category === '股票/ETF' ? getAllUniqueStockCompanies() : getAllUniqueFundNames()), data.name);
         document.getElementById('div-cash-amount').value = data.amount;
