@@ -440,6 +440,7 @@
                             <div class="tab active" onclick="switchChildTab(this, 'unrealized', 'stock')">未實現損益</div>
                             <div class="tab" onclick="switchChildTab(this, 'realized', 'stock')">已實現損益</div>
                             <div class="tab" onclick="switchChildTab(this, 'transactions', 'stock')">交易總明細</div>
+                            <div class="tab" onclick="switchChildTab(this, 'subscription', 'stock')">申購</div>
                         </div>
                     </div>
 
@@ -559,6 +560,27 @@
                         </table>
                     </div>
 
+                    <!-- 申購子頁面 -->
+                    <div id="subscription-page" class="page">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>日期</th>
+                                    <th>公司</th>
+                                    <th>張數</th>
+                                    <th>申購價</th>
+                                    <th>手續費</th>
+                                    <th>中籤通知費</th>
+                                    <th>申購成本</th>
+                                    <th>總成本</th>
+                                    <th>狀態</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="subscription-table-body"></tbody>
+                        </table>
+                    </div>
+
                     <!-- 基金買入子頁面 -->
                     <div id="fund-buy-page" class="page">
                         <table>
@@ -667,6 +689,7 @@
                 <div class="type-selector type-selector-level-2" id="type-selector-level-2-stock">
                     <button class="type-btn active" data-form-type="buy" onclick="selectSubCategory(this, 'buy')">股票買入</button>
                     <button class="type-btn" data-form-type="sell" onclick="selectSubCategory(this, 'sell')">股票賣出</button>
+                    <button class="type-btn" data-form-type="subscription" onclick="selectSubCategory(this, 'subscription')">股票申購</button>
                     <button class="type-btn" data-form-type="stock-dividend" onclick="selectSubCategory(this, 'stock-dividend')">配股/息</button>
                 </div>
                 <form id="form-buy" class="form-form active" onsubmit="handleFormSubmit(event, 'buy')">
@@ -703,6 +726,26 @@
                     <div class="form-group"><label>實收金額 (可手動微調)</label><input type="number" id="sell-total"></div>
                     <button type="submit" class="submit-btn">儲存資料</button>
                 </form>
+
+                <form id="form-subscription" class="form-form" onsubmit="handleFormSubmit(event, 'subscription')">
+                    <div class="form-group"><label>日期</label><input type="date" id="sub-date" required></div>
+                    <div class="form-group"><label>公司</label><div id="sub-company-wrapper"></div></div>
+                    <div class="form-group"><label>張數</label><input type="number" id="sub-lots" oninput="calcSubTotal()" placeholder="0" required></div>
+                    <div class="form-group"><label>申購價</label><input type="number" step="0.01" id="sub-price" oninput="calcSubTotal()" placeholder="0.00" required></div>
+                    <div class="form-group"><label>手續費</label><input type="number" id="sub-fee" oninput="calcSubTotal()" value="20" required></div>
+                    <div class="form-group"><label>中籤通知費</label><input type="number" id="sub-notification-fee" oninput="calcSubTotal()" value="50" required></div>
+                    <div class="form-group"><label>申購成本 (可手動微調)</label><input type="number" id="sub-total" required></div>
+                    <div class="form-group">
+                        <label>狀態</label>
+                        <select id="sub-status" required>
+                            <option value="申購中">申購中</option>
+                            <option value="中籤">中籤</option>
+                            <option value="未中籤">未中籤</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="submit-btn">儲存資料</button>
+                </form>
+
                 <div id="stock-dividend-form-anchor"></div>
             </div>
 
@@ -850,6 +893,7 @@
         savings: [],
         buys: [],   
         sells: [],
+        subscriptions: [], // 🎫 申購記錄
         initAmounts: [], // ⚙️ 初始金額庫
         initStocks: [],  // ⚙️ 初始股票庫
         fundBuys: [],    // 🏦 基金買入
@@ -897,16 +941,14 @@
         const storedDb = localStorage.getItem('my_stock_ledger_db');
         if (storedDb) {
             try {
-                db = JSON.parse(storedDb);
-                if (!db.savings) db.savings = [];
-                if (!db.buys) db.buys = [];
-                if (!db.sells) db.sells = [];
-                if (!db.initAmounts) db.initAmounts = [];
-                if (!db.initStocks) db.initStocks = [];
-                if (!db.fundBuys) db.fundBuys = [];
-                if (!db.fundSells) db.fundSells = [];
-                if (!db.stockDividends) db.stockDividends = [];
-                if (!db.cashDividends) db.cashDividends = [];
+                const parsed = JSON.parse(storedDb);
+                // 使用合併方式，確保舊資料與新定義的 key (如 subscriptions) 並存
+                db = { ...db, ...parsed };
+                // 確保所有必要的陣列都被初始化
+                const keys = Object.keys(db);
+                keys.forEach(key => {
+                    if (!Array.isArray(db[key])) db[key] = [];
+                });
             } catch (e) {
                 console.error("儲存的資料格式有誤，已重置", e);
             }
@@ -937,6 +979,7 @@
         db.savings.sort((a, b) => new Date(a.date) - new Date(b.date));
         db.buys.sort((a, b) => new Date(a.date) - new Date(b.date));
         db.sells.sort((a, b) => new Date(a.date) - new Date(b.date));
+        db.subscriptions.sort((a, b) => new Date(a.date) - new Date(b.date));
         db.initAmounts.sort((a, b) => new Date(a.date) - new Date(b.date));
         db.initStocks.sort((a, b) => new Date(a.date) - new Date(b.date));
         db.fundBuys.sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -1015,6 +1058,27 @@
                 fee: 0,
                 isInit: false
             });
+        });
+
+        // 4. 塞入申購中籤記錄 (視為買入庫存)
+        db.subscriptions.forEach(sub => {
+            if (sub.status === '中籤') {
+                const shares = (sub.lots || 0) * 1000;
+                mergedBuys.push({
+                    id: sub.id,
+                    date: sub.date,
+                    type: '個股', // 依照要求，性質預設為個股
+                    company: sub.company,
+                    shares: shares,
+                    initialShares: shares,
+                    fixedAdjustedPrice: (sub.total / shares).toFixed(2),
+                    total: sub.total,
+                    price: sub.price, // 申購成交價改為申購時的申購價
+                    fee: sub.fee + sub.notificationFee,
+                    isSubWon: true, // 標記為申購中籤記錄
+                    isInit: false
+                });
+            }
         });
 
         // 排序合併後的買入池，依照新增時間 (id) 確保先進先出邏輯直覺
@@ -1138,6 +1202,7 @@
         renderUnrealizedTable();
         renderRealizedTable();
         renderTransactionTable();
+        renderSubscriptionTable();
 
         renderFundBuyTable();
         renderFundSellTable();
@@ -1208,6 +1273,9 @@
 
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(`${page}-page`).classList.add('active');
+        if (page === 'subscription') {
+            renderSubscriptionTable();
+        }
     }
 
     function toggleDetailRow(rowId) {
@@ -1414,6 +1482,16 @@
         document.getElementById('buy-regular').checked = false;
         document.getElementById('buy-fee').readOnly = false;
 
+        // 重置申購欄位
+        document.getElementById('sub-date').value = today;
+        populateNameSelector('sub-company', getAllUniqueStockCompanies(), '');
+        document.getElementById('sub-lots').value = '';
+        document.getElementById('sub-price').value = '';
+        document.getElementById('sub-fee').value = '20';
+        document.getElementById('sub-notification-fee').value = '50';
+        document.getElementById('sub-total').value = '';
+        document.getElementById('sub-status').value = '申購中';
+
         document.getElementById('fund-buy-date').value = today;
         populateNameSelector('fund-buy-name', getAllUniqueFundNames(), '');
         document.getElementById('fund-buy-base-cost').value = '';
@@ -1541,6 +1619,10 @@
             document.getElementById('form-sell').classList.add('active');
             populateNameSelector('sell-company', getAllUniqueStockCompanies(), '');
             calcSellTotal();
+        } else if (formType === 'subscription') {
+            document.getElementById('form-subscription').classList.add('active');
+            populateNameSelector('sub-company', getAllUniqueStockCompanies(), '');
+            calcSubTotal();
         } else if (formType === 'fund-buy') {
             document.getElementById('form-fund-buy').classList.add('active');
             populateNameSelector('fund-buy-name', getAllUniqueFundNames(), '');
@@ -1770,6 +1852,14 @@
         document.getElementById('sell-total').value = Math.floor(rawSum - (fee || 0) - (tax || 0));
     }
 
+    function calcSubTotal() {
+        const lots = parseFloat(document.getElementById('sub-lots').value) || 0;
+        const price = parseFloat(document.getElementById('sub-price').value) || 0;
+        const fee = parseFloat(document.getElementById('sub-fee').value) || 0;
+        const notificationFee = parseFloat(document.getElementById('sub-notification-fee').value) || 0;
+        document.getElementById('sub-total').value = Math.floor(lots * 1000 * price + fee + notificationFee);
+    }
+
     function calcFundBuyTotal() {
         const cost = parseFloat(document.getElementById('fund-buy-base-cost').value) || 0;
         const fee = parseFloat(document.getElementById('fund-buy-fee').value) || 0;
@@ -1789,6 +1879,7 @@
             if (type === 'saving') db.savings = db.savings.filter(item => item.id !== id);
             else if (type === 'buy') db.buys = db.buys.filter(item => item.id !== id);
             else if (type === 'sell') db.sells = db.sells.filter(item => item.id !== id);
+            else if (type === 'subscription') db.subscriptions = db.subscriptions.filter(item => item.id !== id);
             else if (type === 'fundBuy') db.fundBuys = db.fundBuys.filter(item => item.id !== id);
             else if (type === 'fundSell') db.fundSells = db.fundSells.filter(item => item.id !== id);
             else if (type === 'stockDiv') db.stockDividends = db.stockDividends.filter(item => item.id !== id);
@@ -1979,16 +2070,28 @@
             let detailItemsHtml = '';
             group.items.filter(item => item.rawRecord.type !== '配股').forEach(item => {
                 const d = item.rawRecord;
-                const actionHtml = item.isInit 
-                    ? `<span style="font-size:12px; color:#a0aec0;">請至「初始設定」修改</span>`
-                    : `<div class="action-btns">
+                const isSubWon = d.isSubWon;
+                const rowBg = isSubWon ? 'style="background-color: #e6f7ff;"' : ''; // 淺藍色底色辨識
+                
+                let actionHtml = '';
+                if (item.isInit) {
+                    actionHtml = `<span style="font-size:12px; color:#a0aec0;">請至「初始設定」修改</span>`;
+                } else if (isSubWon) {
+                    // 中籤記錄連動至申購編輯
+                    actionHtml = `<div class="action-btns">
+                        <button class="btn-edit" onclick="editSubscription(${item.id})">編輯</button>
+                        <button class="btn-delete" onclick="deleteRecord('subscription', ${item.id})">🗑️</button>
+                       </div>`;
+                } else {
+                    actionHtml = `<div class="action-btns">
                         <button class="btn-edit" onclick="editBuy(${item.id})">編輯</button>
                         <button class="btn-delete" onclick="deleteRecord('buy', ${item.id})">🗑️</button>
                        </div>`;
+                }
                 
                 detailItemsHtml += `
-                    <tr>
-                        <td>${item.date}</td>
+                    <tr ${rowBg}>
+                        <td>${item.date} ${isSubWon ? '<span style="font-size:11px; color:var(--primary-color);">[申購]</span>' : ''}</td>
                         <td>${(d.initialShares || d.shares).toLocaleString()}</td>
                         <td>$${parseFloat(item.isInit ? d.costPrice : d.price).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                         <td>$${(d.fee || 0).toLocaleString()}</td>
@@ -2120,6 +2223,38 @@
                         <button class="btn-delete" onclick="deleteRecord('${row.actionType}', ${row.id})">🗑️</button>
                     </div>
                 </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderSubscriptionTable() {
+        const tbody = document.getElementById('subscription-table-body');
+        tbody.innerHTML = '';
+
+        db.subscriptions.forEach(row => {
+            const tr = document.createElement('tr');
+            
+            // 根據狀態設定樣式
+            let statusStyle = '';
+            if (row.status === '申購中') statusStyle = 'color: #00008b; font-weight: bold;';
+            else if (row.status === '中籤') statusStyle = 'color: var(--danger-color); font-weight: bold;';
+            else if (row.status === '未中籤') statusStyle = 'color: #718096;';
+
+            // 計算實際總成本：未中籤僅收手續費(20元)，其餘狀態則為申購成本(全額)
+            const finalCost = (row.status === '未中籤') ? row.fee : row.total;
+
+            tr.innerHTML = `
+                <td>${row.date}</td>
+                <td>${row.company}</td>
+                <td>${row.lots.toLocaleString()}</td>
+                <td>$${row.price.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td>$${row.fee.toLocaleString()}</td>
+                <td>$${row.notificationFee.toLocaleString()}</td>
+                <td>$${row.total.toLocaleString()}</td>
+                <td style="font-weight: bold; color: var(--success-color);">$${finalCost.toLocaleString()}</td>
+                <td style="${statusStyle}">${row.status}</td>
+                <td><div class="action-btns"><button class="btn-edit" onclick="editSubscription(${row.id})">編輯</button><button class="btn-delete" onclick="deleteRecord('subscription', ${row.id})">🗑️</button></div></td>
             `;
             tbody.appendChild(tr);
         });
@@ -2321,15 +2456,28 @@
         
         const totalCashDiv = db.cashDividends.reduce((sum, row) => sum + row.amount, 0);
         
+        // 計算申購相關支出：
+        // 1. 申購中或中籤：扣除全額申購成本 (total)
+        // 2. 未中籤：僅扣除手續費 (fee)
+        const totalSubscriptionOutflow = db.subscriptions.reduce((sum, sub) => {
+            if (sub.status === '申購中' || sub.status === '中籤') return sum + sub.total;
+            if (sub.status === '未中籤') return sum + sub.fee;
+            return sum;
+        }, 0);
+
         // 總可用餘額加總初始開帳現金
-        const mainAvailable = totalSaved + totalInitAmount - totalBuyCost + totalSellRevenue - totalFundBuyCost + totalFundSellRevenue + totalCashDiv;
+        const mainAvailable = totalSaved + totalInitAmount - totalBuyCost + totalSellRevenue - totalFundBuyCost + totalFundSellRevenue + totalCashDiv - totalSubscriptionOutflow;
         
         // 計算總獲利：股票已實現損益 + 基金賣出損益
         const stockProfit = db.sells.reduce((sum, row) => sum + (row.profit || 0), 0);
         const fundProfit = db.fundSells.reduce((sum, row) => {
             return sum + (row.breakdown ? row.breakdown.reduce((s, b) => s + (b.profit || 0), 0) : 0);
         }, 0);
-        const totalProfit = stockProfit + fundProfit + totalCashDiv;
+
+        // 申購失敗的手續費也應計入損失
+        const subscriptionLoss = db.subscriptions.filter(s => s.status === '未中籤').reduce((sum, s) => sum + s.fee, 0);
+
+        const totalProfit = stockProfit + fundProfit + totalCashDiv - subscriptionLoss;
 
         document.getElementById('main-available').innerText = `$${mainAvailable.toLocaleString()}`;
         const profitEl = document.getElementById('main-profit');
@@ -2398,6 +2546,24 @@
                 if (index !== -1) db.sells[index] = data;
             } else {
                 db.sells.push(data);
+            }
+        } else if (type === 'subscription') {
+            const data = {
+                id: editingId ? editingId : Date.now(),
+                date: document.getElementById('sub-date').value,
+                company: getNameFromSelector('sub-company'),
+                lots: parseFloat(document.getElementById('sub-lots').value) || 0,
+                price: parseFloat(document.getElementById('sub-price').value) || 0,
+                fee: parseFloat(document.getElementById('sub-fee').value) || 0,
+                notificationFee: parseFloat(document.getElementById('sub-notification-fee').value) || 0,
+                total: parseFloat(document.getElementById('sub-total').value) || 0,
+                status: document.getElementById('sub-status').value
+            };
+            if (editingId) {
+                const index = db.subscriptions.findIndex(item => item.id === editingId);
+                if (index !== -1) db.subscriptions[index] = data;
+            } else {
+                db.subscriptions.push(data);
             }
         } else if (type === 'fund-buy') {
             const baseCost = parseFloat(document.getElementById('fund-buy-base-cost').value) || 0;
@@ -2518,6 +2684,21 @@
         document.getElementById('sell-total').value = data.total;
         sellFeeManual = true; sellTaxManual = true;
         editingId = id; editingType = 'sell';
+    }
+
+    function editSubscription(id) {
+        const data = db.subscriptions.find(item => item.id === id);
+        if (!data) return;
+        openModal(); selectMainCategory(document.querySelector('#type-selector-level-1 .type-btn[data-category="stock"]'), 'stock'); selectSubCategory(document.querySelector('#type-selector-level-2-stock .type-btn[data-form-type="subscription"]'), 'subscription');
+        document.getElementById('sub-date').value = data.date;
+        populateNameSelector('sub-company', getAllUniqueStockCompanies(), data.company);
+        document.getElementById('sub-lots').value = data.lots;
+        document.getElementById('sub-price').value = data.price;
+        document.getElementById('sub-fee').value = data.fee;
+        document.getElementById('sub-notification-fee').value = data.notificationFee;
+        document.getElementById('sub-total').value = data.total;
+        document.getElementById('sub-status').value = data.status;
+        editingId = id; editingType = 'subscription';
     }
 
     function editFundBuy(id) {
